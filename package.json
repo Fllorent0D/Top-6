@@ -33,6 +33,7 @@
     "big-json": "^2.0.2",
     "cli-spinner": "^0.2.8",
     "cli-table": "^0.3.1",
+    "dateformat": "^3.0.3",
     "lodash": "^4.17.11",
     "sleep": "^5.2.3",
     "soap": "^0.25.0",
