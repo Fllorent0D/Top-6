@@ -10,7 +10,7 @@ import { WeekSummary } from './week-summary';
 const mkdirpP = promisify(mkdirp);
 const writeFile = promisify(fs.writeFile);
 
-schedule.scheduleJob('*/2 * * * *', () => {
+schedule.scheduleJob('0 15 * * *', () => {
   const app = new TopCalculator();
   const summary = new WeekSummary();
   const date = dateFormat(new Date(), 'yyyy-mm-dd');
