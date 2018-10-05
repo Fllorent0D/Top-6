@@ -2,16 +2,15 @@ import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as sleep from 'sleep';
-import { IConfig } from '../build/src/models/IConfig.interface';
-import { ConfigRankingCategories } from '../build/src/models/RankingCategories.model';
-import { ConfingRankingRegion } from '../build/src/models/RankingItem.model';
-import { Config } from './config';
+
+import { Config, IConfigCategoryRanking, IConfigRegionRanking } from './config';
 import { GetMatchesRequest } from './models/GetMatchesRequest';
 import { GetMatchesResponse } from './models/GetMatchesResponse';
 import { TeamMatchEntry } from './models/TeamMatchEntry';
 import { PlayersStats } from './players-stats';
 import { TabTRequestor } from './TabTRequestor';
 import { Week } from './week';
+
 
 class Ranking {
   public week: number;
@@ -38,7 +37,6 @@ class RankingPlayer {
 
 
 export class TopCalculator {
-  public static config: IConfig;
   /*
 
   1 - Loop over weeks and download matchs
@@ -125,13 +123,13 @@ export class TopCalculator {
         week: i,
         rankings: [],
       } as Ranking;
-      _.forEach(Config.regions, (value: ConfingRankingRegion) => {
+      _.forEach(Config.regions, (value: IConfigRegionRanking) => {
         // Creates a new region for this week
         const ranking = {
           name: value.name,
           categories: [],
         };
-        _.forEach(Config.categories, (category: ConfigRankingCategories) => {
+        _.forEach(Config.categories, (category: IConfigCategoryRanking) => {
           // Creates each category for this region of this week
           ranking.categories.push({
             name: category.name,
@@ -143,10 +141,9 @@ export class TopCalculator {
 
       //Loop on players on include them in the correct ranking
       _.forEach(this.playersStats.playersStats, (player: any) => {
-        console.log(player);
 
         // Check the current category the player is in for the week n°i
-        const currentPointsPlayer = _.find(player.rankingEvolution, {'weekName': i});
+        const currentPointsPlayer = _.find(player.rankingEvolution, { 'weekName': i });
 
         if (currentPointsPlayer) {
           // Check in which region the club is in
@@ -154,10 +151,10 @@ export class TopCalculator {
 
           if (rankingRegion) {
             // Find the index of the correct region for the club
-            const rankingRegionIndex = _.findIndex(rankingsCurrentWeek.rankings, {'name': rankingRegion.name});
+            const rankingRegionIndex = _.findIndex(rankingsCurrentWeek.rankings, { 'name': rankingRegion.name });
 
             // Find the index of the correct category
-            const categoryIndex = _.findIndex(rankingsCurrentWeek.rankings[rankingRegionIndex].categories, {'name': currentPointsPlayer.rankingCategory});
+            const categoryIndex = _.findIndex(rankingsCurrentWeek.rankings[rankingRegionIndex].categories, { 'name': currentPointsPlayer.rankingCategory });
 
             // Push the player to the correct category and region
             rankingsCurrentWeek.rankings[rankingRegionIndex].categories[categoryIndex].players.push({
@@ -196,7 +193,7 @@ export class TopCalculator {
 
 
   private printRankings(week: number): string {
-    let text = ''
+    let text = '';
     text = `${text}\nJournée ${week}`;
     const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });
 
