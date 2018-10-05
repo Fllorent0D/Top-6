@@ -2,6 +2,7 @@ import * as dateFormat from 'dateformat';
 import * as _ from 'lodash';
 import * as sleep from 'sleep';
 
+import { Config } from './config';
 import { DivisionNameType, GetMatchesRequest } from './models/GetMatchesRequest';
 import { GetMatchesResponse } from './models/GetMatchesResponse';
 import { TeamMatchEntry } from './models/TeamMatchEntry';
@@ -20,13 +21,7 @@ export class WeekSummary {
   private readonly tabt: TabTRequestor;
 
   constructor() {
-
-    this.config = ['L095', 'L323', 'L264', 'L002', 'L318', 'L320', 'L337', 'L348',
-      'L313', 'L328', 'L125', 'L389', 'L382', 'L179', 'L360', 'L399', 'L066', 'L368',
-      'L003', 'L184', 'L252', 'L272', 'L274', 'L284', 'L296', 'L326',
-      'L329', 'L344', 'L349', 'L357', 'L378'];
-
-    this.config = ['L264'];
+    this.config = Config.getAllClubs();
     this.tabt = new TabTRequestor();
   }
 
@@ -38,11 +33,13 @@ export class WeekSummary {
     return lastWeek;
   }
 
-  public async start() {
+  public async start(): Promise<string> {
     const matches = await this.downloadAllMatches();
     const groupedMatch = this.groupMatches(matches);
     const text = this.printResult(groupedMatch);
     console.log(text);
+
+    return text;
   }
 
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
