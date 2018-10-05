@@ -89,7 +89,7 @@ export class TopCalculator {
 
     for (let i = 1; i < this.currentWeek; i = i + 1) {
       for (const club of clubs) {
-        sleep.msleep(1000);
+        sleep.msleep(5000);
 
         let matches = await this.downloadMatchesOfClubForWeek(club, i);
         if (matches) {

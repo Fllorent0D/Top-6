@@ -45,7 +45,7 @@ export class WeekSummary {
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
     const matches: TeamMatchEntry[] = [];
     for (const club of this.config) {
-      sleep.msleep(1000);
+      sleep.msleep(5000);
       const matchesOfClub = await this.downloadMatchesOfClubForWeek(club);
 
       if (matchesOfClub) {
