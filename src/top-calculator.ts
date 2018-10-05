@@ -75,7 +75,7 @@ export class TopCalculator {
 
     this.createRankings();
 
-    fs.writeFile(`players-${dateFormat(WeekSummary.getLastWeek(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
+    fs.writeFile(`players-${dateFormat(new Date(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
       console.log(err);
     });
 

@@ -1,14 +1,9 @@
 import * as client from '@sendgrid/client';
 import * as dateFormat from 'dateformat';
-import { promisify } from 'es6-promisify';
-import * as fs from 'fs';
-import * as mkdirp from 'mkdirp';
 import * as schedule from 'node-schedule';
 import { TopCalculator } from './top-calculator';
 import { WeekSummary } from './week-summary';
 
-const mkdirpP = promisify(mkdirp);
-const writeFile = promisify(fs.writeFile);
 
 schedule.scheduleJob('0 15 * * *', () => {
   const app = new TopCalculator();
@@ -19,9 +14,6 @@ schedule.scheduleJob('0 15 * * *', () => {
     .then(([summaryText, topText]: [string, string]) => {
       client.setApiKey('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');
 
-      const text = `Voici les top 6 calculé automatiquement.`;
-
-      const request = {};
       const data = {
         'content': [
           {
@@ -70,19 +62,23 @@ schedule.scheduleJob('0 15 * * *', () => {
         ],
 
       };
-      request.body = data;
-      request.method = 'POST';
-      request.add;
-      request.url = '/v3/mail/send';
+      const request = {
+        body: data,
+        method: 'POST',
+        url: '/v3/mail/send',
+      };
+
       client.request(request)
         .then(([response, body]: [any, any]) => {
+          console.log('EMAIL envoyé');
           console.log(response.statusCode);
           console.log(body);
+        })
+        .catch((err) => {
+          console.error('EMAIL error');
+          console.error(err);
         });
     });
-
-
-  console.log('should be executed');
 });
 
 
