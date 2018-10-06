@@ -6,7 +6,7 @@ import { TopCalculator } from './top-calculator';
 import { WeekSummary } from './week-summary';
 
 
-schedule.scheduleJob('*/5 * * * *', () => {
+schedule.scheduleJob('0 0/10 * 1/1 * ? *', () => {
   Config.logger.info(`Scheduled script starting...`);
 
   const app = new TopCalculator();

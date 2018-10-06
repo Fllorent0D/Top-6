@@ -74,7 +74,7 @@ export class TopCalculator {
     Config.logger.info('Calculating rankings');
     this.createRankings();
 
-    fs.writeFile(`players-${dateFormat(new Date(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
+    fs.writeFile(`debug/players-${dateFormat(new Date(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
       Config.logger.info('Error when writing debug data : ', err);
     });
     Config.logger.info('Top 6 script ended');
