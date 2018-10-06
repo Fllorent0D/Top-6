@@ -5,8 +5,12 @@ import { Config } from './config';
 import { TopCalculator } from './top-calculator';
 import { WeekSummary } from './week-summary';
 
+const rule = new schedule.RecurrenceRule();
+rule.dayOfWeek = 2;
+rule.hour = 17;
+rule.minute = 0;
 
-schedule.scheduleJob('0 0/10 * 1/1 * ? *', () => {
+schedule.scheduleJob('*/10 * * * *', () => {
   Config.logger.info(`Scheduled script starting...`);
 
   const app = new TopCalculator();
@@ -77,7 +81,7 @@ schedule.scheduleJob('0 0/10 * 1/1 * ? *', () => {
           Config.logger.info(`Response: ${body}`);
           Config.logger.info(`Status code: ${response.statusCode}`);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           Config.logger.error(`Email sending error : ${err}`);
         });
     });
