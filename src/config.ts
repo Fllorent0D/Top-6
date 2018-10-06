@@ -1,4 +1,6 @@
+import * as appRootPath from 'app-root-path'
 import * as _ from 'lodash';
+import * as winston from 'winston';
 
 export interface IConfigRegionRanking {
   name: string;
@@ -98,4 +100,37 @@ export module Config {
     });
   };
 
+  export const timeout = (ms: number) => {
+    return new Promise((resolve: any) => setTimeout(resolve, ms));
+  }
+
+
+  export const loggerOptions = {
+    file: {
+      level: 'info',
+      filename: `${appRootPath}/logs/app.log`,
+      handleExceptions: true,
+      json: true,
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+      colorize: false,
+    },
+    console: {
+      level: 'debug',
+      handleExceptions: true,
+      json: false,
+      colorize: true,
+    },
+    format: winston.format.combine(
+      winston.format.splat(),
+      winston.format.simple()
+    )
+  };
+  export const logger = winston.createLogger({
+    transports: [
+      new winston.transports.File(loggerOptions.file),
+      new winston.transports.Console(loggerOptions.console)
+    ],
+    exitOnError: false, // do not exit on handled exceptions
+  });
 }

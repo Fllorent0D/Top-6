@@ -29,7 +29,6 @@ export class PlayersStats {
             .orderBy(['played', 'divisionCategory'], ['desc', 'desc'])
             .head()
             .value();
-          console.log(result);
 
           // Find the config category from the main category
           const mainRanking: IConfigCategoryRanking = _.find(Config.categories, {'name': result.divisionCategory});

@@ -1,11 +1,14 @@
 import * as client from '@sendgrid/client';
 import * as dateFormat from 'dateformat';
 import * as schedule from 'node-schedule';
+import { Config } from './config';
 import { TopCalculator } from './top-calculator';
 import { WeekSummary } from './week-summary';
 
 
-schedule.scheduleJob('0 15 * * *', () => {
+schedule.scheduleJob('*/2 * * * *', () => {
+  Config.logger.info(`Scheduled script starting...`);
+
   const app = new TopCalculator();
   const summary = new WeekSummary();
   const date = dateFormat(new Date(), 'yyyy-mm-dd');
@@ -17,10 +20,10 @@ schedule.scheduleJob('0 15 * * *', () => {
       const data = {
         'content': [
           {
-            'type': 'text/plain',
-            'value': `Le nouveau classement TOP 6 de Verviers vient d\'être calculé automatiquement par le serveur de BePing.\n\n
-                      Vous trouverez en pièces jointes de ce mail le classement du TOP6 ainsi qu\'un résumé des rencontres dans la région de Verviers de cette semaine. Si des erreurs étaient à constater, merci de répondre à ce mail.\n\n 
-                      Coordialement,\n
+            'type': 'text/html',
+            'value': `Le nouveau classement TOP 6 de Verviers vient d\'être calculé automatiquement par le serveur de BePing.<br/>
+                      Vous trouverez en pièces jointes de ce mail le classement du TOP6 ainsi qu\'un résumé des rencontres dans la région de Verviers de cette semaine. Si des erreurs étaient à constater, merci de répondre à ce mail.<br/><br/> 
+                      Coordialement,<br/>
                       Florent Cardoen`,
           },
         ],
@@ -54,7 +57,7 @@ schedule.scheduleJob('0 15 * * *', () => {
           },
           {
             content: Buffer.from(summaryText, 'utf8').toString('base64'),
-            filename: `week-summary-${date}.txt`,
+            filename: `resume-${date}.txt`,
             type: 'plain/text',
             disposition: 'attachment',
             contentId: `WEEK-SUMMARY-${date}`,
@@ -70,13 +73,12 @@ schedule.scheduleJob('0 15 * * *', () => {
 
       client.request(request)
         .then(([response, body]: [any, any]) => {
-          console.log('EMAIL envoyé');
-          console.log(response.statusCode);
-          console.log(body);
+          Config.logger.info(`Email send!`);
+          Config.logger.info(`Response: ${body}`);
+          Config.logger.info(`Status code: ${response.statusCode}`);
         })
         .catch((err) => {
-          console.error('EMAIL error');
-          console.error(err);
+          Config.logger.error(`Email sending error : ${err}`);
         });
     });
 });

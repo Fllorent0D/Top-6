@@ -1,7 +1,5 @@
 import * as dateFormat from 'dateformat';
 import * as _ from 'lodash';
-import * as sleep from 'sleep';
-
 import { Config } from './config';
 import { DivisionNameType, GetMatchesRequest } from './models/GetMatchesRequest';
 import { GetMatchesResponse } from './models/GetMatchesResponse';
@@ -34,18 +32,20 @@ export class WeekSummary {
   }
 
   public async start(): Promise<string> {
+
+    Config.logger.info('Script summary started')
     const matches = await this.downloadAllMatches();
     const groupedMatch = this.groupMatches(matches);
     const text = this.printResult(groupedMatch);
-    console.log(text);
-
+    Config.logger.info('Script summary ended')
     return text;
   }
 
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
     const matches: TeamMatchEntry[] = [];
     for (const club of this.config) {
-      sleep.msleep(5000);
+      await Config.timeout(5000);
+      Config.logger.info(`Summary: Downloading this week of ${club}`);
       const matchesOfClub = await this.downloadMatchesOfClubForWeek(club);
 
       if (matchesOfClub) {

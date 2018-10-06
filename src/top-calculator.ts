@@ -1,7 +1,6 @@
 import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
 import * as _ from 'lodash';
-import * as sleep from 'sleep';
 
 import { Config, IConfigCategoryRanking, IConfigRegionRanking } from './config';
 import { GetMatchesRequest } from './models/GetMatchesRequest';
@@ -66,16 +65,19 @@ export class TopCalculator {
 
 
   public async start(): Promise<string> {
+    Config.logger.info('Top 6 script started');
 
     const matches = await this.downloadAllMatches();
     this.playersStats.processPlayersFromMatches(matches);
     this.playersStats.attributeDivisionToEachPlayers();
 
+    Config.logger.info('Calculating rankings');
     this.createRankings();
 
     fs.writeFile(`players-${dateFormat(new Date(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
-      console.log(err);
+      Config.logger.info('Error when writing debug data : ', err);
     });
+    Config.logger.info('Top 6 script ended');
 
     return this.printRankings(this.currentWeek);
   }
@@ -87,8 +89,9 @@ export class TopCalculator {
 
     for (let i = 1; i < this.currentWeek; i = i + 1) {
       for (const club of clubs) {
-        sleep.msleep(5000);
 
+        await Config.timeout(4000);
+        Config.logger.info(`Top : Downloading ${club} weekname ${i}`);
         let matches = await this.downloadMatchesOfClubForWeek(club, i);
         if (matches) {
           matches = matches.filter((match: TeamMatchEntry) => divisions.indexOf(match.DivisionId) > -1);
