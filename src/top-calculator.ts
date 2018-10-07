@@ -212,6 +212,10 @@ export class TopCalculator {
         }
       }
     }
+    text = `${text}\n\nErreurs détectées: `;
+    for (const error of this.playersStats.errorsDetected) {
+      text = `${text}\n${error}`;
+    }
 
     return text;
   }

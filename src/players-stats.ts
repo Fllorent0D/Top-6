@@ -7,9 +7,11 @@ import { TeamMatchPlayerEntry } from './models/TeamMatchPlayerEntry';
 export class PlayersStats {
   public currentWeek: number;
   public readonly playersStats: any;
+  public errorsDetected: string[];
 
   constructor() {
     this.playersStats = {};
+    this.errorsDetected = [];
   }
 
   public attributeDivisionToEachPlayers() {
@@ -132,7 +134,9 @@ export class PlayersStats {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);
     } else {
       if (alreadyExistingResult.matchId !== matchId) {
-        Config.logger.error(`${player.FirstName} ${player.LastName} ${player.UniqueIndex} a été inscrit sur deux feuilles de match différentes à la semaine ${weekname}. Match 1 : ${alreadyExistingResult.matchId}, Match2 : ${matchId}`);
+        const error = `${player.FirstName} ${player.LastName} ${player.UniqueIndex} a été inscrit sur deux feuilles de match différentes à la semaine ${weekname}. Match 1 : ${alreadyExistingResult.matchId}, Match2 : ${matchId}`;
+        Config.logger.error(error);
+        this.errorsDetected.push(error);
       }
     }
   }
