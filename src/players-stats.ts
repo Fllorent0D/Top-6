@@ -8,7 +8,7 @@ export class PlayersStats {
   public currentWeek: number;
   public readonly playersStats: any;
 
-  constructor(){
+  constructor() {
     this.playersStats = {};
   }
 
@@ -31,7 +31,7 @@ export class PlayersStats {
             .value();
 
           // Find the config category from the main category
-          const mainRanking: IConfigCategoryRanking = _.find(Config.categories, {'name': result.divisionCategory});
+          const mainRanking: IConfigCategoryRanking = _.find(Config.categories, { 'name': result.divisionCategory });
 
           // filter participation from the main category
           const matchesToCount = slicedParticipation.filter((participation: any) => {
@@ -58,40 +58,48 @@ export class PlayersStats {
 
   public processPlayersFromMatches(matches: TeamMatchEntry[]): void {
     for (const match of matches) {
-      if (match.MatchDetails.DetailsCreated) {
-        const divisionId = match.DivisionId;
-        const weekName = match.WeekName;
-        const homeClub = match.HomeClub;
-        const awayClub = match.AwayClub;
+      const divisionId = match.DivisionId;
+      const weekName = match.WeekName;
+      const homeClub = match.HomeClub;
+      const awayClub = match.AwayClub;
+
+      if (((homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) || (awayClub === '-' && match.AwayTeam.indexOf('Bye') > -1))
+        && _.get(match, 'MatchDetails.DetailsCreated', false)) {
+        //If Home or Away is BYE, we have to count players stats and count 5 points
+
+        const players = (homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) ? _.get(match, 'MatchDetails.AwayPlayers.Players', []) : _.get(match, 'MatchDetails.HomePlayers.Players', []);
+        const club = (homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) ? awayClub : homeClub;
+        for (const player of players) {
+          this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
+        }
+      } else if (match.MatchDetails.DetailsCreated) {
+
         const forfeitFilter = (player: TeamMatchPlayerEntry) => _.get(player, 'IsForfeited', false);
         const forfeitAway = match.MatchDetails.AwayPlayers.Players.filter(forfeitFilter).length;
         const forfeitHome = match.MatchDetails.HomePlayers.Players.filter(forfeitFilter).length;
-        // TO DO check if club in region
 
         //Process HomePlayer
-        if (!match.IsHomeForfeited) {
+        if (!match.IsHomeForfeited && Config.getAllClubs().indexOf(match.HomeClub) > -1) {
           for (const player of match.MatchDetails.HomePlayers.Players) {
             if (!player.IsForfeited) {
-              this.upsertPlayerStat(player, divisionId, weekName, homeClub, forfeitAway);
+              this.upsertPlayerStat(player, divisionId, weekName, homeClub, match.MatchId, forfeitAway);
             }
           }
         }
 
         //Process AwayPlayer
-        if (!match.IsAwayForfeited) {
+        if (!match.IsAwayForfeited && Config.getAllClubs().indexOf(match.AwayClub) > -1) {
           for (const player of match.MatchDetails.AwayPlayers.Players) {
             if (!player.IsForfeited) {
-              this.upsertPlayerStat(player, divisionId, weekName, awayClub, forfeitHome);
+              this.upsertPlayerStat(player, divisionId, weekName, awayClub, match.MatchId, forfeitHome);
             }
           }
         }
-
       }
-      // TO DO Check for BYE
     }
   }
 
-  private upsertPlayerStat(player: TeamMatchPlayerEntry, division: number, weekname: number, club: string, forfeit: number) {
+  private upsertPlayerStat(player: TeamMatchPlayerEntry, division: number, weekname: number, club: string, matchId: string, forfeit: number) {
     const newVictoryHistory = {
       'divisionIndex': division,
       'divisionCategory': Config.mapDivisionIdToCategory(division).name,
@@ -99,6 +107,7 @@ export class PlayersStats {
       'victoryCount': player.VictoryCount,
       'forfeit': forfeit,
       'pointsWon': Config.mapVictoryToPoint(player.VictoryCount + forfeit),
+      'matchId' : matchId
     };
 
     if (!_.has(this.playersStats, player.UniqueIndex)) {
@@ -113,10 +122,14 @@ export class PlayersStats {
       this.playersStats[player.UniqueIndex] = newPlayerStats;
     }
 
-    const alreadyExistingResult = _.find(this.playersStats[player.UniqueIndex].victoryHistory, {'weekName': weekname});
+    const alreadyExistingResult = _.find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
 
     if (!alreadyExistingResult) {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);
+    } else {
+      if(alreadyExistingResult.matchId !== matchId){
+        Config.logger.error(`${player.FirstName} ${player.LastName} ${player.UniqueIndex} a été inscrit sur deux feuilles de match différentes à la semaine ${weekname}. Match 1 : ${alreadyExistingResult.matchId}, Match2 : ${matchId}`);
+      }
     }
   }
 
