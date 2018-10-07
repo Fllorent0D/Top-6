@@ -197,11 +197,11 @@ export class TopCalculator {
 
   private printRankings(week: number): string {
     let text = '';
-    text = `${text}\nJournée ${week}`;
+    text = `${text}\nJournée ${week - 1}`;
     const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });
 
     for (const ranking of rankingCurrentWeek.rankings) {
-      text = `${text}\n\n\n\n------------------------------------------`;
+      text = `${text}\n\n------------------------------------------`;
       text = `${text}\n---------- Classements ${ranking.name} ----------`;
       text = `${text}\n------------------------------------------`;
       for (const category of ranking.categories) {

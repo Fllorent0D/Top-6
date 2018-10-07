@@ -100,6 +100,10 @@ export class PlayersStats {
   }
 
   private upsertPlayerStat(player: TeamMatchPlayerEntry, division: number, weekname: number, club: string, matchId: string, forfeit: number) {
+    if (!_.get(player, 'UniqueIndex')) {
+      return;
+    }
+
     const newVictoryHistory = {
       'divisionIndex': division,
       'divisionCategory': Config.mapDivisionIdToCategory(division).name,
@@ -107,7 +111,7 @@ export class PlayersStats {
       'victoryCount': player.VictoryCount,
       'forfeit': forfeit,
       'pointsWon': Config.mapVictoryToPoint(player.VictoryCount + forfeit),
-      'matchId' : matchId
+      'matchId': matchId,
     };
 
     if (!_.has(this.playersStats, player.UniqueIndex)) {
@@ -127,7 +131,7 @@ export class PlayersStats {
     if (!alreadyExistingResult) {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);
     } else {
-      if(alreadyExistingResult.matchId !== matchId){
+      if (alreadyExistingResult.matchId !== matchId) {
         Config.logger.error(`${player.FirstName} ${player.LastName} ${player.UniqueIndex} a été inscrit sur deux feuilles de match différentes à la semaine ${weekname}. Match 1 : ${alreadyExistingResult.matchId}, Match2 : ${matchId}`);
       }
     }
