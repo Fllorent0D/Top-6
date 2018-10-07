@@ -10,8 +10,8 @@ rule.dayOfWeek = 2;
 rule.hour = 17;
 rule.minute = 0;
 
-schedule.scheduleJob('0 20 * * *', () => {
-  Config.logger.info(`Scheduled script starting...`);
+const job = schedule.scheduleJob('0 20 * * *', (fireDate: Date) => {
+  Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
 
   const app = new TopCalculator();
   const summary = new WeekSummary();
@@ -83,14 +83,18 @@ schedule.scheduleJob('0 20 * * *', () => {
         url: '/v3/mail/send',
       };
 
-      client.request(request)
-        .then(([response, body]: [any, any]) => {
-          Config.logger.info(`Email send!`);
-          Config.logger.info(`Response: ${body}`);
-          Config.logger.info(`Status code: ${response.statusCode}`);
-        })
-        .catch((err: any) => {
-          Config.logger.error(`Email sending error : ${err}`);
-        });
+      return client.request(request);
+    })
+    .then(([response, body]: [any, any]) => {
+      Config.logger.info(`Email send!`);
+      Config.logger.info(`Response: ${body}`);
+      Config.logger.info(`Status code: ${response.statusCode}`);
+    })
+    .catch((err: any) => {
+      Config.logger.error(`Email sending error : ${err}`);
+    })
+    .then(() => {
+      Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
     });
 });
+Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);
