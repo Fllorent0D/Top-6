@@ -10,7 +10,7 @@ rule.dayOfWeek = 2;
 rule.hour = 17;
 rule.minute = 0;
 
-schedule.scheduleJob('*/10 * * * *', () => {
+schedule.scheduleJob('0 20 * * *', () => {
   Config.logger.info(`Scheduled script starting...`);
 
   const app = new TopCalculator();
@@ -42,6 +42,14 @@ schedule.scheduleJob('*/10 * * * *', () => {
               {
                 'email': 'f.cardoen@me.com',
                 'name': 'Florent Cardoen',
+              },
+              {
+                'email': 'aurelie.kaye@gmail.com',
+                'name': 'Aurélie Kaye',
+              },
+              {
+                'email': 'jacpirard@hotmail.com',
+                'name': 'Jacques Pirard',
               },
             ],
           },
@@ -86,8 +94,3 @@ schedule.scheduleJob('*/10 * * * *', () => {
         });
     });
 });
-
-
-/*
-
-*/
