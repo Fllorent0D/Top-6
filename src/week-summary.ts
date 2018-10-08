@@ -33,12 +33,12 @@ export class WeekSummary {
 
   public async start(): Promise<string> {
 
-    Config.logger.info('Script summary started')
+    Config.logger.info('Script summary started');
     const matches = await this.downloadAllMatches();
     const groupedMatch = this.groupMatches(matches);
     const text = this.printResult(groupedMatch);
     Config.logger.info('Script summary ended');
-    
+
     return text;
   }
 
@@ -68,7 +68,8 @@ export class WeekSummary {
 
       return { series, region, sex, matches: matchesSerie };
     })
-    .filter(({series, ...rest}: {series: string}) => series.indexOf('7') === -1)
+    // @ts-ignore
+    .filter(({ series, region, sex, matchs }: { series: string; region: string; sex: string; matchs: TeamMatchEntry[]; }) => series.indexOf('7') === -1)
     .orderBy(['sex', 'region', 'series'], ['DESC', 'ASC', 'ASC'])
     .value();
 
