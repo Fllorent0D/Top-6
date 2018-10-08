@@ -37,7 +37,8 @@ export class WeekSummary {
     const matches = await this.downloadAllMatches();
     const groupedMatch = this.groupMatches(matches);
     const text = this.printResult(groupedMatch);
-    Config.logger.info('Script summary ended')
+    Config.logger.info('Script summary ended');
+    
     return text;
   }
 
@@ -56,6 +57,7 @@ export class WeekSummary {
     return matches;
   }
 
+
   private groupMatches = (matches: TeamMatchEntry[]): IGroupedMatches[] => _.chain(matches)
     .uniqBy('MatchId')
     .filter((match: TeamMatchEntry) => !(match.HomeTeam.includes('Bye') || match.AwayTeam.includes('Bye')))
@@ -66,15 +68,16 @@ export class WeekSummary {
 
       return { series, region, sex, matches: matchesSerie };
     })
-    .orderBy(['sex', 'region', 'series'], ['DESC', 'DESC', 'ASC'])
+    .filter(({series, ...rest}: {series: string}) => series.indexOf('7') === -1)
+    .orderBy(['sex', 'region', 'series'], ['DESC', 'ASC', 'ASC'])
     .value();
 
   private printResult(matchesGrouped: IGroupedMatches[]): string {
     let text = '';
     for (const series of matchesGrouped) {
-      text = `${text}\n\n--- ${series.region} - ${series.series} - ${series.sex}`;
+      text = `${text}\n\n---  ${series.sex} - ${series.region} - ${series.series}\n`;
       for (const match of series.matches) {
-        text = `${text}\n\n\t${this.printMatch(match)}`;
+        text = `${text}\n\t${this.printMatch(match)}`;
       }
     }
 
@@ -90,34 +93,26 @@ export class WeekSummary {
       const playersArray = [];
 
       const reduceNames = (acc: string[], player: TeamMatchPlayerEntry): string[] => {
-        const playerString: string = `${player.FirstName} ${player.LastName} (${player.Ranking}, ${_.get(player, 'VictoryCount', 'WO')})`;
+
+        const playerString: string = `${player.FirstName.charAt(0)}. ${Config.titleCase(player.LastName)} ${_.get(player, 'VictoryCount', 'WO')}`;
 
         return _.concat(acc, playerString);
       };
 
-      const reduceRanking = (playersToReduce: TeamMatchPlayerEntry[]): string[] => _.chain(playersToReduce)
-        .countBy('Ranking')
-        .toPairsIn()
-        .map(([ranking, count]: [string, number]) => `${count} ${ranking}`)
-        .value();
-
-
       if (_.includes(this.config, match.HomeClub)) {
-        playersArray.push(`\n\t\t${match.HomeTeam}: `, _.reduce(match.MatchDetails.HomePlayers.Players, reduceNames, []).join(', '));
-      } else {
-        playersArray.push(`\n\t\t${match.HomeTeam}: `, reduceRanking(match.MatchDetails.HomePlayers.Players).join(', '));
+        playersArray.push(_.reduce(match.MatchDetails.HomePlayers.Players, reduceNames, []).join(', '));
       }
+
       if (_.includes(this.config, match.AwayClub)) {
-        playersArray.push(`\n\t\t${match.AwayTeam}: `, _.reduce(match.MatchDetails.AwayPlayers.Players, reduceNames, []).join(', '));
-      } else {
-        playersArray.push(`\n\t\t${match.AwayTeam}: `, reduceRanking(match.MatchDetails.AwayPlayers.Players).join(', '));
+        playersArray.push(_.reduce(match.MatchDetails.AwayPlayers.Players, reduceNames, []).join(', '));
       }
-      players = playersArray.join('');
+
+      players = playersArray.join(', ');
     } else {
       players = 'NC';
     }
 
-    return `${teams} | ${score} | ${players}`;
+    return `${teams} : ${score}   ${players}`;
   }
 
   private async downloadMatchesOfClubForWeek(club: string): Promise<TeamMatchEntry[]> {

@@ -212,7 +212,7 @@ export class TopCalculator {
         text = `${text}\n\n--- Catégorie ${category.name}`;
 
         for (const player of category.players) {
-          text = `${text}\n${player.position} ${player.uniqueIndex} ${player.name} ${player.clubIndex} ${ player.points } `;
+          text = `${text}\n${player.position} ${player.uniqueIndex} ${Config.titleCase(player.name)} ${player.clubIndex} ${ player.points } `;
         }
       }
     }

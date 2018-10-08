@@ -135,4 +135,5 @@ export module Config {
     ],
     exitOnError: false, // do not exit on handled exceptions
   });
+  export const titleCase = (text: string) => text.toLowerCase().split(' ').map((s: string) => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
 }
