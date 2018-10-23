@@ -51,6 +51,10 @@ const job = schedule.scheduleJob('0 20 * * *', (fireDate: Date) => {
                 'email': 'jacpirard@hotmail.com',
                 'name': 'Jacques Pirard',
               },
+              {
+                'email': 'thomasbastin5@gmail.com',
+                'name': 'Thomas Bastin'
+              }
             ],
           },
         ],
