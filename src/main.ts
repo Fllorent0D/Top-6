@@ -6,11 +6,11 @@ import { TopCalculator } from './top-calculator';
 import { WeekSummary } from './week-summary';
 
 const rule = new schedule.RecurrenceRule();
-rule.dayOfWeek = 2;
-rule.hour = 17;
+rule.dayOfWeek = 0;
+rule.hour = 20;
 rule.minute = 0;
 
-const job = schedule.scheduleJob('0 20 * * *', (fireDate: Date) => {
+const job = schedule.scheduleJob(rule, (fireDate: Date) => {
   Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
 
   const app = new TopCalculator();
