@@ -25,8 +25,8 @@ const job = schedule.scheduleJob('0 20 * * *', (fireDate: Date) => {
         'content': [
           {
             'type': 'text/html',
-            'value': `Le nouveau classement TOP 6 de Verviers vient d\'être calculé automatiquement par le serveur de BePing.<br/>
-                      Vous trouverez en pièces jointes de ce mail le classement du TOP6 ainsi qu\'un résumé des rencontres dans la région de Verviers de cette semaine. Si des erreurs étaient à constater, merci de répondre à ce mail.<br/><br/> 
+            'value': `Le nouveau classement TOP 6 de Verviers & Huy-Waremme vient d\'être calculé automatiquement par le serveur de BePing.<br/>
+                      Vous trouverez en pièces jointes de ce mail le classement du TOP6 ainsi que les techniques des rencontres dans la région de Verviers & Huy-Waremme de cette semaine. <br/>Si des erreurs étaient à constater, merci de répondre à ce mail.<br/><br/> 
                       Coordialement,<br/>
                       Florent Cardoen`,
           },
@@ -58,7 +58,7 @@ const job = schedule.scheduleJob('0 20 * * *', (fireDate: Date) => {
           'email': 'f.cardoen@me.com',
           'name': 'Florent Cardoen',
         },
-        'subject': 'Top 6 & Résultats de la région de Verviers',
+        'subject': 'Top 6 & Techniques de la région de Verviers & Huy-Waremme',
         attachments: [
           {
             content: Buffer.from(topText, 'utf8').toString('base64'),

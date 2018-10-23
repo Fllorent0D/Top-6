@@ -1,4 +1,4 @@
-import * as appRootPath from 'app-root-path'
+import * as appRootPath from 'app-root-path';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 
@@ -6,6 +6,7 @@ export interface IConfigRegionRanking {
   name: string;
   clubs: string[];
 }
+
 export interface IConfigCategoryRanking {
   id: number;
   name: string;
@@ -14,11 +15,14 @@ export interface IConfigCategoryRanking {
 
 export module Config {
   export const regions: IConfigRegionRanking[] = [
-    /*
     {
       name: 'Huy-Waremme',
-      clubs: [],
-    },*/
+      clubs: [
+        'L029', 'L126', 'L193', 'L205', 'L230', 'L246', 'L257', 'L266',
+        'L267', 'L275', 'L276', 'L282', 'L293', 'L295', 'L333', 'L335',
+        'L358', 'L365', 'L374', 'L387', 'L393', 'L398', 'L400', 'L310', 'L124',
+      ],
+    },
     {
       name: 'Verviers',
       clubs:
@@ -26,9 +30,7 @@ export module Config {
           'L313', 'L328', 'L125', 'L389', 'L382', 'L179', 'L360', 'L399', 'L066', 'L368',
           'L003', 'L184', 'L252', 'L272', 'L274', 'L284', 'L296', 'L326',
           'L329', 'L344', 'L349', 'L357', 'L378'],
-
-      //clubs: ['L360', 'L252', 'L326']
-    }
+    },
     /*,
     {
       name: 'Liège',
@@ -104,7 +106,7 @@ export module Config {
 
   export const timeout = (ms: number) => {
     return new Promise((resolve: any) => setTimeout(resolve, ms));
-  }
+  };
 
 
   export const loggerOptions = {
@@ -125,13 +127,13 @@ export module Config {
     },
     format: winston.format.combine(
       winston.format.splat(),
-      winston.format.simple()
-    )
+      winston.format.simple(),
+    ),
   };
   export const logger = winston.createLogger({
     transports: [
       new winston.transports.File(loggerOptions.file),
-      new winston.transports.Console(loggerOptions.console)
+      new winston.transports.Console(loggerOptions.console),
     ],
     exitOnError: false, // do not exit on handled exceptions
   });

@@ -19,7 +19,7 @@ export class WeekSummary {
   private readonly tabt: TabTRequestor;
 
   constructor() {
-    this.config = Config.getAllClubs();
+    //this.config = Config.getAllClubs();
     this.tabt = new TabTRequestor();
   }
 
@@ -32,19 +32,25 @@ export class WeekSummary {
   }
 
   public async start(): Promise<string> {
-
     Config.logger.info('Script summary started');
-    const matches = await this.downloadAllMatches();
-    const groupedMatch = this.groupMatches(matches);
-    const text = this.printResult(groupedMatch);
+    let text = '';
+    for (const region of Config.regions) {
+      Config.logger.info(`Starting summary for region ${region.name}`);
+
+      const matches = await this.downloadAllMatches(region.clubs);
+      const groupedMatch = this.groupMatches(matches);
+      text = text + this.printResult(groupedMatch, region.name);
+
+      Config.logger.info(`Summary for region ${region.name} ended`);
+    }
     Config.logger.info('Script summary ended');
 
     return text;
   }
 
-  private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
+  private async downloadAllMatches(clubs: string[]): Promise<TeamMatchEntry[]> {
     const matches: TeamMatchEntry[] = [];
-    for (const club of this.config) {
+    for (const club of clubs) {
       await Config.timeout(5000);
       Config.logger.info(`Summary: Downloading this week of ${club}`);
       const matchesOfClub = await this.downloadMatchesOfClubForWeek(club);
@@ -73,8 +79,10 @@ export class WeekSummary {
     .orderBy(['sex', 'region', 'series'], ['DESC', 'ASC', 'ASC'])
     .value();
 
-  private printResult(matchesGrouped: IGroupedMatches[]): string {
-    let text = '';
+  private printResult(matchesGrouped: IGroupedMatches[], region: string): string {
+    let text = `\n\n------------------------------------------`;
+    text = `${text}\n---------- Techniques ${region} ----------`;
+    text = `${text}\n------------------------------------------`;
     for (const series of matchesGrouped) {
       text = `${text}\n\n---  ${series.sex} - ${series.region} - ${series.series}\n`;
       for (const match of series.matches) {
