@@ -6,7 +6,6 @@ import { sendMail } from './helpers/mail';
 import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
-const week = new Week();
 
 const rule = new schedule.RecurrenceRule();
 rule.dayOfWeek = [0, 1, 2];
@@ -15,7 +14,7 @@ rule.minute = 0;
 
 const job = schedule.scheduleJob(rule, (fireDate: Date) => {
   Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
-
+  const week = new Week();
   const top: TopCalculator = new TopCalculator();
   const summary: WeekSummary = new WeekSummary();
   const firebase: FirebaseAdmin = new FirebaseAdmin();
