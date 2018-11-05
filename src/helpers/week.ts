@@ -31,7 +31,7 @@ export class Week {
     22: { fromDate: new Date(2019, 2, 31), toDate: new Date(2019, 3, 6) },
   };
 
-  public getDate(numJournee: number): IWeek {
+  public getDate(numJournee: number): {fromDate: Date, toDate: Date} {
     return this.journees[numJournee];
   }
 

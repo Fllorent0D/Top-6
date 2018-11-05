@@ -1,28 +1,24 @@
 import * as admin from 'firebase-admin';
-import * as fs from 'fs';
+import { Config } from '../config';
 
 
-export class FirebaseAdmin{
-  private database;
-
+export class FirebaseAdmin {
   constructor() {
-    const serviceAccount = JSON.parse(fs.readFileSync('/Users/id096319/BePing/top-6/src/firebase/beping-196714-firebase-adminsdk-0tn8d-22c3cc2319.json', 'utf8'));
+    const serviceAccount: any = Config.firebaseConfig;
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       databaseURL: 'https://beping-196714.firebaseio.com'
     });
 
-    this.database = admin.database().ref('/tops');
   }
 
-  public saveTop(top){
-    this.database.set(top, (a)=> {
-      console.log('top saved in firebase', a)
+  public saveTop(top: any, debug: any) {
+    admin.database().ref('/tops').set(top, () => {
+      Config.logger.info('Top saved in firebase');
+    });
+    admin.database().ref('/debug').set(debug, () => {
+      Config.logger.info('Debug in firebase');
     });
   }
-  public saveDebug(debug){
-    admin.database().ref('debug').set(debug);
-  }
-
 }

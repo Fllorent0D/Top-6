@@ -1,108 +1,50 @@
-
-import * as client from '@sendgrid/client';
-
-import * as dateFormat from 'dateformat';
 import * as schedule from 'node-schedule';
 import { Config } from './config';
 
+import { FirebaseAdmin } from './firebase/firebase-admin';
+import { sendMail } from './helpers/mail';
+import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
+const week = new Week();
 
 const rule = new schedule.RecurrenceRule();
-rule.dayOfWeek = 0;
+rule.dayOfWeek = [0, 1, 2];
 rule.hour = 20;
 rule.minute = 0;
 
-import {FirebaseAdmin} from './firebase/firebase-admin';
+const job = schedule.scheduleJob(rule, (fireDate: Date) => {
+  Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
 
-const top = new TopCalculator();
-const test = new FirebaseAdmin();
+  const top: TopCalculator = new TopCalculator();
+  const summary: WeekSummary = new WeekSummary();
+  const firebase: FirebaseAdmin = new FirebaseAdmin();
+  const currentDay: number = new Date().getDay();
+  let dayJob: Promise<any>;
 
-top.start().then((rankings) => {
-  test.saveTop(rankings);
-  test.saveDebug(top.playersStats);
-});
+  if (currentDay === 0) {
+    dayJob = Promise.all([summary.start(), top.start()])
+      .then(([summaryText, tops]: [string, any]) => {
+        firebase.saveTop(tops, top.playersStats);
+        const topText = top.printRankings(week.getCurrentJournee());
 
-
-//const job = schedule.scheduleJob(rule, (fireDate: Date) => {
-  //Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
-/*
-  const app = new TopCalculator();
-  const summary = new WeekSummary();
-  const date = dateFormat(new Date(), 'yyyy-mm-dd');
-
-  Promise.all([summary.start()])
-    .then(([summaryText]: [string, string]) => {
-      client.setApiKey('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');
-
-      const data = {
-        'content': [
-          {
-            'type': 'text/html',
-            'value': `Le nouveau classement TOP 6 de Verviers & Huy-Waremme vient d\'être calculé automatiquement par le serveur de BePing.<br/>
-                      Vous trouverez en pièces jointes de ce mail le classement du TOP6 ainsi que les techniques des rencontres dans la région de Verviers & Huy-Waremme de cette semaine. <br/>Si des erreurs étaient à constater, merci de répondre à ce mail.<br/><br/> 
-                      Coordialement,<br/>
-                      Florent Cardoen`,
-          },
-        ],
-        'from': {
-          'email': 'florent.cardoen@beping.be',
-          'name': 'Florent Cardoen',
-        },
-        'personalizations': [
-          {
-            'subject': 'CORRECTION: Top 6 & Techniques Verviers & Huy-Waremme',
-            'to': [
-              {
-                'email': 'f.cardoen@me.com',
-                'name': 'Florent Cardoen',
-              },
-              {
-                'email': 'jacpirard@hotmail.com',
-                'name': 'Jacques Pirard',
-              },
-              {
-                'email': 'thomasbastin5@gmail.com',
-                'name': 'Thomas Bastin'
-              }
-            ],
-          },
-        ],
-        'reply_to': {
-          'email': 'f.cardoen@me.com',
-          'name': 'Florent Cardoen',
-        },
-        'subject': 'CORRECTION: Top 6 & Techniques Verviers & Huy-Waremme',
-        attachments: [
-          {
-            content: Buffer.from(summaryText, 'utf8').toString('base64'),
-            filename: `resume-${date}.txt`,
-            type: 'plain/text',
-            disposition: 'attachment',
-            contentId: `WEEK-SUMMARY-${date}`,
-          },
-        ],
-
-      };
-      const request = {
-        body: data,
-        method: 'POST',
-        url: '/v3/mail/send',
-      };
-
-      return client.request(request);
-    })
-    .then(([response, body]: [any, any]) => {
-      Config.logger.info(`Email send!`);
-      Config.logger.info(`Response: ${body}`);
-      Config.logger.info(`Status code: ${response.statusCode}`);
-    })
-    .catch((err: any) => {
-      Config.logger.error(`Email sending error : ${err}`);
-    })
-    .then(() => {
-      //Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
+        return sendMail(summaryText, topText);
+      })
+      .then(([response, body]: [any, any]) => {
+        Config.logger.info(`Email send!`);
+        Config.logger.info(`Response: ${body}`);
+        Config.logger.info(`Status code: ${response.statusCode}`);
+      })
+      .catch((err: any) => {
+        Config.logger.error(`Email sending error : ${err}`);
+      });
+  } else {
+    dayJob = top.start().then((tops: any) => {
+      firebase.saveTop(tops, top.playersStats);
     });
-//});
-//Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);
-*/
+  }
+  dayJob.then(() => {
+    Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
+  });
+});
+Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);
