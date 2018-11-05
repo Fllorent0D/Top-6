@@ -31,10 +31,10 @@ export module Config {
           'L003', 'L184', 'L252', 'L272', 'L274', 'L284', 'L296', 'L326',
           'L329', 'L344', 'L349', 'L357', 'L378'],
     },
-    /*,
+    /*
     {
       name: 'Liège',
-      clubs: [],
+      clubs: ['L264'],
     },*/
   ];
   export const categories: IConfigCategoryRanking[] = [

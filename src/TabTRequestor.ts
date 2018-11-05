@@ -1,58 +1,85 @@
+import * as _ from 'lodash';
+import * as fetch from 'node-fetch';
+
 import { Client, createClientAsync } from 'soap';
-import { GetClubsRequest } from './models/GetClubsRequest';
-import { GetClubsResponse } from './models/GetClubsResponse';
-import { GetClubTeamsRequest } from './models/GetClubTeamsRequest';
-import { GetClubTeamsResponse } from './models/GetClubTeamsResponse';
-import { GetDivisionRankingRequest } from './models/GetDivisionRankingRequest';
-import { GetDivisionRankingResponse } from './models/GetDivisionRankingResponse';
-import { GetDivisionsRequest } from './models/GetDivisionsRequest';
-import { GetDivisionsResponse } from './models/GetDivisionsResponse';
-import { GetMatchesRequest } from './models/GetMatchesRequest';
-import { GetMatchesResponse } from './models/GetMatchesResponse';
-import { GetMembersRequest } from './models/GetMembersRequest';
-import { GetMembersResponse } from './models/GetMembersResponse';
-import { GetSeasonsResponse } from './models/GetSeasonsResponse';
-import { GetTournamentsRequest } from './models/GetTournamentsRequest';
-import { GetTournamentsResponse } from './models/GetTournamentsResponse';
-import { IRequest } from './models/IRequest';
-import { TestRequest } from './models/TestRequest';
-import { TestResponse } from './models/TestResponse';
-import { TournamentRegister } from './models/TournamentRegister';
-import { TournamentRegisterResponse } from './models/TournamentRegisterResponse';
+import {
+  ClubEntry,
+  DivisionEntry,
+  GetClubsRequest,
+  GetClubTeamsRequest,
+  GetDivisionRankingRequest,
+  GetDivisionsRequest,
+  GetMatchesRequest,
+  GetMembersRequest,
+  GetSeasonsResponse,
+  GetTournamentsRequest,
+  IRequest,
+  MemberEntry,
+  RankingEntry,
+  TeamEntry,
+  TeamMatchEntry,
+  TestRequest,
+  TestResponse, TournamentEntry,
+  TournamentRegister,
+  TournamentRegisterResponse
+} from './tabt-models';
+
 
 export class TabTRequestor {
   public stub: string = 'https://resultats.aftt.be/api/?wsdl';
 
   public getSeasons(): Promise<GetSeasonsResponse> {
-    return this.callOperation('GetSeasons', {} as IRequest);
+    return this.callUrl('/seasons');
+
+    //return this.callOperation("GetSeasons", {} as IRequest);
   }
 
-  public getClubTeams(args: GetClubTeamsRequest): Promise<GetClubTeamsResponse> {
-    return this.callOperation('GetClubTeams', args);
+  public getClubTeams(club: string, args: GetClubTeamsRequest): Promise<TeamEntry[]> {
+    return this.callUrl(`/clubs/${club}/teams`, args);
+
+    //return this.callOperation("GetClubTeams", args);
   }
 
-  public getDivisionRanking(args: GetDivisionRankingRequest): Promise<GetDivisionRankingResponse> {
-    return this.callOperation('GetDivisionRanking', args);
+  public getDivisionRanking(divisionId: string, args: GetDivisionRankingRequest): Promise<RankingEntry[]> {
+    return this.callUrl(`/divisions/${divisionId}/ranking`, args);
+
+    //return this.callOperation("GetDivisionRanking", args);
   }
 
-  public getMatches(args: GetMatchesRequest): Promise<GetMatchesResponse> {
-    return this.callOperation('GetMatches', args);
+  public getMatches(args: GetMatchesRequest): Promise<TeamMatchEntry[]> {
+    return this.callUrl('/matchs', args);
+
+    //return this.callOperation("GetMatches", args);
   }
 
-  public getMembers(args: GetMembersRequest): Promise<GetMembersResponse> {
-    return this.callOperation('GetMembers', args);
+  public getMembers(args: GetMembersRequest): Promise<MemberEntry[]> {
+    return this.callUrl('/membres', args);
+
+    //return this.callOperation('GetMembers', args);
   }
 
-  public getClubs(args: GetClubsRequest): Promise<GetClubsResponse> {
-    return this.callOperation('GetClubs', args);
+  public getClubs(args: GetClubsRequest): Promise<ClubEntry[]> {
+    return this.callUrl('/clubs', args);
+
+    //return this.callOperation('GetClubs', args);
   }
 
-  public getDivisions(args: GetDivisionsRequest): Promise<GetDivisionsResponse> {
-    return this.callOperation('GetDivisions', args);
+  public getDivisions(args: GetDivisionsRequest): Promise<DivisionEntry[]> {
+    return this.callUrl('/divisions', args);
+
+    //return this.callOperation('GetDivisions', args);
   }
 
-  public getTournaments(args: GetTournamentsRequest): Promise<GetTournamentsResponse> {
-    return this.callOperation('GetTournaments', args);
+  public getTournaments(args: GetTournamentsRequest): Promise<TournamentEntry[]> {
+    return this.callUrl('/tournaments', args);
+
+    //return this.callOperation('GetTournaments', args);
+  }
+
+  public getTournament(tournamentId: string, args: GetTournamentsRequest): Promise<TournamentEntry[]> {
+    return this.callUrl(`/tournaments/${tournamentId}`, args);
+
+    //return this.callOperation('GetTournaments', args);
   }
 
   public registerTournament(args: TournamentRegister): Promise<TournamentRegisterResponse> {
@@ -60,11 +87,54 @@ export class TabTRequestor {
   }
 
   public testRequest(args: TestRequest): Promise<TestResponse> {
-    return this.callOperation('Test', args);
+    return this.callUrl('/test', args);
   }
 
   private createClient(): Promise<Client> {
     return createClientAsync(this.stub);
+  }
+
+  private callUrl(url: string, args?: IRequest): Promise<any> {
+
+
+    const argmentifiedUrl = url.split('/').map((part: string) => {
+      if (part.charAt(0) === ':') {
+        let expectedParam: string = _.chain(part)
+          .replace(':', '')
+          .startCase()
+          .replace(new RegExp(' ', 'g'), '')
+          .value();
+        const isOptional: boolean = expectedParam.charAt(expectedParam.length) === '?';
+
+        if (isOptional) {
+          expectedParam = expectedParam.slice(0, -1);
+        }
+
+        const valueParam = _.get(args, expectedParam, null);
+
+        if (valueParam !== null) {
+          _.omit(args, expectedParam);
+
+          return valueParam;
+        } else if (isOptional) {
+          return '';
+        } else {
+          throw new Error('Parameter not found in arguments.');
+        }
+      }
+
+      return part;
+    }).join('/');
+
+    const queryString = _.chain(args)
+      .toPairsIn()
+      .map(([key, value]: [string, string]) => `${_.camelCase(encodeURIComponent(key))}=${encodeURIComponent(value)}`)
+      .join('&')
+      .value();
+
+    const urlToCall = `http://localhost:5000/api${argmentifiedUrl}?${queryString}`;
+
+    return fetch(urlToCall, {headers: { 'x-frenoy-database': 'aftt' }}).then((res: any) => res.json());
   }
 
   private callOperation(operationToExecute: string, args: IRequest): Promise<any> {
@@ -74,7 +144,6 @@ export class TabTRequestor {
         return client[`${operationToExecute}Async`](args);
       })
       .then((result: any) => Promise.resolve(result[0]));
-    ;
   }
 
 

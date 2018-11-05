@@ -1,11 +1,10 @@
 import * as dateFormat from 'dateformat';
 import * as _ from 'lodash';
-import { Config } from './config';
-import { DivisionNameType, GetMatchesRequest } from './models/GetMatchesRequest';
-import { GetMatchesResponse } from './models/GetMatchesResponse';
-import { TeamMatchEntry } from './models/TeamMatchEntry';
-import { TeamMatchPlayerEntry } from './models/TeamMatchPlayerEntry';
-import { TabTRequestor } from './TabTRequestor';
+
+import { Config } from '../config';
+
+import { DivisionNameType, GetMatchesRequest, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
+import { TabTRequestor } from '../TabTRequestor';
 
 interface IGroupedMatches {
   series: string;
@@ -15,7 +14,6 @@ interface IGroupedMatches {
 }
 
 export class WeekSummary {
-  private readonly config: string[];
   private readonly tabt: TabTRequestor;
 
   constructor() {
@@ -39,7 +37,7 @@ export class WeekSummary {
 
       const matches = await this.downloadAllMatches(region.clubs);
       const groupedMatch = this.groupMatches(matches);
-      text = text + this.printResult(groupedMatch, region.name);
+      text = text + this.printResult(groupedMatch, region.name, region.clubs);
 
       Config.logger.info(`Summary for region ${region.name} ended`);
     }
@@ -51,7 +49,7 @@ export class WeekSummary {
   private async downloadAllMatches(clubs: string[]): Promise<TeamMatchEntry[]> {
     const matches: TeamMatchEntry[] = [];
     for (const club of clubs) {
-      await Config.timeout(5000);
+      //await Config.timeout(5000);
       Config.logger.info(`Summary: Downloading this week of ${club}`);
       const matchesOfClub = await this.downloadMatchesOfClubForWeek(club);
 
@@ -64,6 +62,7 @@ export class WeekSummary {
   }
 
 
+  // @ts-ignore
   private groupMatches = (matches: TeamMatchEntry[]): IGroupedMatches[] => _.chain(matches)
     .uniqBy('MatchId')
     .filter((match: TeamMatchEntry) => !(match.HomeTeam.includes('Bye') || match.AwayTeam.includes('Bye')))
@@ -79,21 +78,21 @@ export class WeekSummary {
     .orderBy(['sex', 'region', 'series'], ['DESC', 'ASC', 'ASC'])
     .value();
 
-  private printResult(matchesGrouped: IGroupedMatches[], region: string): string {
+  private printResult(matchesGrouped: IGroupedMatches[], region: string, clubs: string[]): string {
     let text = `\n\n------------------------------------------`;
     text = `${text}\n---------- Techniques ${region} ----------`;
     text = `${text}\n------------------------------------------`;
     for (const series of matchesGrouped) {
       text = `${text}\n\n---  ${series.sex} - ${series.region} - ${series.series}\n`;
       for (const match of series.matches) {
-        text = `${text}\n\t${this.printMatch(match)}`;
+        text = `${text}\n\t${this.printMatch(match, clubs)}`;
       }
     }
 
     return text;
   }
 
-  private printMatch(match: TeamMatchEntry): string {
+  private printMatch(match: TeamMatchEntry, clubs: string[]): string {
     const teams = `${match.HomeTeam} - ${match.AwayTeam}`;
     const score = _.get(match, 'Score', ' - ');
 
@@ -107,12 +106,11 @@ export class WeekSummary {
 
         return _.concat(acc, playerString);
       };
-
-      if (_.includes(this.config, match.HomeClub)) {
+      if (_.includes(clubs, match.HomeClub)) {
         playersArray.push(_.reduce(match.MatchDetails.HomePlayers.Players, reduceNames, []).join(', '));
       }
 
-      if (_.includes(this.config, match.AwayClub)) {
+      if (_.includes(clubs, match.AwayClub)) {
         playersArray.push(_.reduce(match.MatchDetails.AwayPlayers.Players, reduceNames, []).join(', '));
       }
 
@@ -132,7 +130,7 @@ export class WeekSummary {
     getMatchRequest.YearDateFrom = dateFormat(WeekSummary.getLastWeek(), 'yyyy-mm-dd');
     getMatchRequest.ShowDivisionName = DivisionNameType.Yes;
 
-    return this.tabt.getMatches(getMatchRequest).then((matches: GetMatchesResponse) => matches.TeamMatchesEntries);
+    return this.tabt.getMatches(getMatchRequest);
   }
 
 }

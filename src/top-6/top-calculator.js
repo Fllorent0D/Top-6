@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const _ = require("lodash");
-const GetMatchesRequest_1 = require("./models/GetMatchesRequest");
+const GetMatchesRequest_1 = require("./tabt-models/GetMatchesRequest");
 const TabTRequestor_1 = require("./TabTRequestor");
 const week_1 = require("./week");
 class TopCalculator {

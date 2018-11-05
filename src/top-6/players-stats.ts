@@ -1,12 +1,37 @@
 import * as _ from 'lodash';
 
-import { Config, IConfigCategoryRanking } from './config';
-import { TeamMatchEntry } from './models/TeamMatchEntry';
-import { TeamMatchPlayerEntry } from './models/TeamMatchPlayerEntry';
+import { Config, IConfigCategoryRanking } from '../config';
+import { TeamMatchEntry, TeamMatchPlayerEntry, IndividualMatchResultEntry } from '../tabt-models';
+
+export interface IMatchItem {
+  divisionIndex: number
+  divisionCategory: string,
+  weekName: number,
+  victoryCount: number,
+  forfeit: number,
+  pointsWon: number,
+  matchId: string,
+}
+
+export interface IRankingEvolution {
+  weekName: number,
+  rankingCategory: string,
+  points: number
+}
+
+export interface IPlayerStats {
+  uniqueIndex: number;
+  name: string;
+  clubIndex: string;
+  victoryHistory: IMatchItem[];
+  rankingEvolution: IRankingEvolution[];
+
+}
+
 
 export class PlayersStats {
   public currentWeek: number;
-  public readonly playersStats: any;
+  public readonly playersStats: { [index: string]: IPlayerStats };
   public errorsDetected: string[];
 
   constructor() {
@@ -33,7 +58,7 @@ export class PlayersStats {
             .value();
 
           // Find the config category from the main category
-          const mainRanking: IConfigCategoryRanking = _.find(Config.categories, { 'name': result.divisionCategory });
+          const mainRanking: IConfigCategoryRanking = _.find(Config.categories, { 'name': result.divisionCategory }) as IConfigCategoryRanking;
 
           // filter participation from the main category
           const matchesToCount = slicedParticipation.filter((participation: any) => {
@@ -51,7 +76,7 @@ export class PlayersStats {
           this.playersStats[value.uniqueIndex].rankingEvolution.push({
             'weekName': i,
             'rankingCategory': result.divisionCategory,
-            'points': points,
+            'points': points
           });
         }
       }
@@ -76,24 +101,23 @@ export class PlayersStats {
         }
       } else if (match.MatchDetails.DetailsCreated) {
 
-        const forfeitFilter = (player: TeamMatchPlayerEntry) => _.get(player, 'IsForfeited', false);
-        const forfeitAway = match.MatchDetails.AwayPlayers.Players.filter(forfeitFilter).length;
-        const forfeitHome = match.MatchDetails.HomePlayers.Players.filter(forfeitFilter).length;
-
-        //Process HomePlayer
+        //Process HomePlayer(s)
         if (!match.IsHomeForfeited && Config.getAllClubs().indexOf(match.HomeClub) > -1) {
           for (const player of match.MatchDetails.HomePlayers.Players) {
             if (!player.IsForfeited) {
-              this.upsertPlayerStat(player, divisionId, weekName, homeClub, match.MatchId, forfeitAway);
+              // Calculate forfeit for each player
+              const forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, 'Home');
+              this.upsertPlayerStat(player, divisionId, weekName, homeClub, match.MatchId, forfeit);
             }
           }
         }
 
-        //Process AwayPlayer
+        //Process AwayPlayer(s)
         if (!match.IsAwayForfeited && Config.getAllClubs().indexOf(match.AwayClub) > -1) {
           for (const player of match.MatchDetails.AwayPlayers.Players) {
             if (!player.IsForfeited) {
-              this.upsertPlayerStat(player, divisionId, weekName, awayClub, match.MatchId, forfeitHome);
+              const forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, 'Away');
+              this.upsertPlayerStat(player, divisionId, weekName, awayClub, match.MatchId, forfeit);
             }
           }
         }
@@ -106,29 +130,28 @@ export class PlayersStats {
       return;
     }
 
-    const newVictoryHistory = {
+    const newVictoryHistory: IMatchItem = {
       'divisionIndex': division,
-      'divisionCategory': Config.mapDivisionIdToCategory(division).name,
+      'divisionCategory': Config.mapDivisionIdToCategory(_.toNumber(division)).name,
       'weekName': weekname,
       'victoryCount': player.VictoryCount,
       'forfeit': forfeit,
       'pointsWon': Config.mapVictoryToPoint(player.VictoryCount + forfeit),
-      'matchId': matchId,
+      'matchId': matchId
     };
 
     if (!_.has(this.playersStats, player.UniqueIndex)) {
       //Not yet found in stats
-      const newPlayerStats = {
+      this.playersStats[player.UniqueIndex] = {
         'uniqueIndex': player.UniqueIndex,
         'name': `${player.LastName} ${player.FirstName}`,
         'clubIndex': club,
         'victoryHistory': [],
-        'rankingEvolution': [],
+        'rankingEvolution': []
       };
-      this.playersStats[player.UniqueIndex] = newPlayerStats;
     }
 
-    const alreadyExistingResult = _.find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
+    const alreadyExistingResult: IMatchItem = _.find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
 
     if (!alreadyExistingResult) {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);
@@ -141,4 +164,15 @@ export class PlayersStats {
     }
   }
 
+  private calculateForfeit(playerUniqueIndex: number, individualMatches: IndividualMatchResultEntry[], position: string): number {
+
+    const label = `${position}PlayerUniqueIndex`;
+    const oppositeToCheck = (position === 'Home') ? 'IsAwayForfeited' : 'IsHomeForfeited';
+
+    return _.chain(individualMatches)
+      .filter((individual: IndividualMatchResultEntry) => _.includes(_.get(individual, label, []), playerUniqueIndex))
+      .filter((playerMatch: IndividualMatchResultEntry[]) => _.get(playerMatch, oppositeToCheck, false))
+      .size()
+      .value();
+  }
 }

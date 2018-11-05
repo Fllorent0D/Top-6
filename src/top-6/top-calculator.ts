@@ -2,13 +2,11 @@ import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 
-import { Config, IConfigCategoryRanking, IConfigRegionRanking } from './config';
-import { GetMatchesRequest } from './models/GetMatchesRequest';
-import { GetMatchesResponse } from './models/GetMatchesResponse';
-import { TeamMatchEntry } from './models/TeamMatchEntry';
-import { PlayersStats } from './players-stats';
-import { TabTRequestor } from './TabTRequestor';
-import { Week } from './week';
+import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config';
+import { Week } from '../helpers/week';
+import { GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
+import { TabTRequestor } from '../TabTRequestor';
+import { IRankingEvolution, PlayersStats } from './players-stats';
 
 
 class Ranking {
@@ -47,7 +45,7 @@ export class TopCalculator {
   */
   private tabt: TabTRequestor;
   private readonly week: Week;
-  private readonly playersStats: PlayersStats;
+  public readonly playersStats: PlayersStats;
   private readonly rankings: Ranking[];
   private readonly currentWeek: number;
 
@@ -64,7 +62,7 @@ export class TopCalculator {
   }
 
 
-  public async start(): Promise<string> {
+  public async start(): Promise<Ranking[]> {
     Config.logger.info('Top 6 script started');
 
     const matches = await this.downloadAllMatches();
@@ -83,7 +81,7 @@ export class TopCalculator {
     });
     Config.logger.info('Top 6 script ended');
 
-    return this.printRankings(this.currentWeek);
+    return this.rankings;
   }
 
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
@@ -98,8 +96,7 @@ export class TopCalculator {
         Config.logger.info(`Top : Downloading ${club} weekname ${i}`);
         let matches = await this.downloadMatchesOfClubForWeek(club, i);
         if (matches) {
-          matches = matches.filter((match: TeamMatchEntry) => divisions.indexOf(match.DivisionId) > -1);
-
+          matches = matches.filter((match: TeamMatchEntry) => divisions.indexOf(_.toNumber(match.DivisionId)) > -1);
           allMatches.push(...matches);
         }
       }
@@ -118,7 +115,7 @@ export class TopCalculator {
     getMatchRequest.Club = club;
     getMatchRequest.WithDetails = true;
 
-    return this.tabt.getMatches(getMatchRequest).then((matchs: GetMatchesResponse) => matchs.TeamMatchesEntries);
+    return this.tabt.getMatches(getMatchRequest);
   }
 
 
@@ -126,21 +123,21 @@ export class TopCalculator {
     for (let i = 1; i < this.currentWeek; i = i + 1) {
 
       // Creates a new week to wrap the regions rankings
-      const rankingsCurrentWeek = {
+      const rankingsCurrentWeek: Ranking = {
         week: i,
-        rankings: [],
-      } as Ranking;
+        rankings: []
+      };
       _.forEach(Config.regions, (value: IConfigRegionRanking) => {
         // Creates a new region for this week
         const ranking = {
           name: value.name,
-          categories: [],
+          categories: []
         };
         _.forEach(Config.categories, (category: IConfigCategoryRanking) => {
           // Creates each category for this region of this week
           ranking.categories.push({
             name: category.name,
-            players: [],
+            players: []
           });
         });
         rankingsCurrentWeek.rankings.push(ranking);
@@ -150,7 +147,7 @@ export class TopCalculator {
       _.forEach(this.playersStats.playersStats, (player: any) => {
 
         // Check the current category the player is in for the week n°i
-        const currentPointsPlayer = _.find(player.rankingEvolution, { 'weekName': i });
+        const currentPointsPlayer: IRankingEvolution = _.find(player.rankingEvolution, { 'weekName': i }) as IRankingEvolution;
 
         if (currentPointsPlayer) {
           // Check in which region the club is in
@@ -168,7 +165,7 @@ export class TopCalculator {
               uniqueIndex: player.uniqueIndex,
               clubIndex: player.clubIndex,
               name: player.name,
-              points: currentPointsPlayer.points,
+              points: currentPointsPlayer.points
             });
           }
         }
@@ -185,13 +182,13 @@ export class TopCalculator {
 
           return {
             name: category.name,
-            players: rank,
+            players: rank
           };
         });
 
         return {
           name: ranking.name,
-          categories: orderedCategories,
+          categories: orderedCategories
         };
       });
       this.rankings.push(rankingsCurrentWeek);
@@ -199,7 +196,7 @@ export class TopCalculator {
   }
 
 
-  private printRankings(week: number): string {
+  public printRankings(week: number): string {
     let text = '';
     text = `${text}\nJournée ${week - 1}`;
     const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });

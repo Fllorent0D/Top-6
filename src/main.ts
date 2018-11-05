@@ -1,8 +1,11 @@
+
 import * as client from '@sendgrid/client';
+
 import * as dateFormat from 'dateformat';
 import * as schedule from 'node-schedule';
 import { Config } from './config';
-import { TopCalculator } from './top-calculator';
+
+import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
 
 const rule = new schedule.RecurrenceRule();
@@ -10,15 +13,26 @@ rule.dayOfWeek = 0;
 rule.hour = 20;
 rule.minute = 0;
 
-const job = schedule.scheduleJob(rule, (fireDate: Date) => {
-  Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
+import {FirebaseAdmin} from './firebase/firebase-admin';
 
+const top = new TopCalculator();
+const test = new FirebaseAdmin();
+
+top.start().then((rankings) => {
+  test.saveTop(rankings);
+  test.saveDebug(top.playersStats);
+});
+
+
+//const job = schedule.scheduleJob(rule, (fireDate: Date) => {
+  //Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
+/*
   const app = new TopCalculator();
   const summary = new WeekSummary();
   const date = dateFormat(new Date(), 'yyyy-mm-dd');
 
-  Promise.all([summary.start(), app.start()])
-    .then(([summaryText, topText]: [string, string]) => {
+  Promise.all([summary.start()])
+    .then(([summaryText]: [string, string]) => {
       client.setApiKey('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');
 
       const data = {
@@ -37,15 +51,11 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
         },
         'personalizations': [
           {
-            'subject': 'Top 6 & Résumé de la région de Verviers',
+            'subject': 'CORRECTION: Top 6 & Techniques Verviers & Huy-Waremme',
             'to': [
               {
                 'email': 'f.cardoen@me.com',
                 'name': 'Florent Cardoen',
-              },
-              {
-                'email': 'aurelie.kaye@gmail.com',
-                'name': 'Aurélie Kaye',
               },
               {
                 'email': 'jacpirard@hotmail.com',
@@ -62,15 +72,8 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
           'email': 'f.cardoen@me.com',
           'name': 'Florent Cardoen',
         },
-        'subject': 'Top 6 & Techniques de la région de Verviers & Huy-Waremme',
+        'subject': 'CORRECTION: Top 6 & Techniques Verviers & Huy-Waremme',
         attachments: [
-          {
-            content: Buffer.from(topText, 'utf8').toString('base64'),
-            filename: `top6-${date}.txt`,
-            type: 'plain/text',
-            disposition: 'attachment',
-            contentId: `TOP6-${date}`,
-          },
           {
             content: Buffer.from(summaryText, 'utf8').toString('base64'),
             filename: `resume-${date}.txt`,
@@ -98,7 +101,8 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
       Config.logger.error(`Email sending error : ${err}`);
     })
     .then(() => {
-      Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
+      //Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
     });
-});
-Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);
+//});
+//Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);
+*/
