@@ -1,7 +1,6 @@
 import * as appRootPath from 'app-root-path';
 import * as _ from 'lodash';
 import * as winston from 'winston';
-import { AppOptions, ServiceAccount } from 'firebase-admin';
 
 export interface IConfigRegionRanking {
   name: string;

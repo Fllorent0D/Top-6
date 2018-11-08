@@ -7,29 +7,12 @@ import { Week } from '../helpers/week';
 import { GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
 import { TabTRequestor } from '../TabTRequestor';
 import { IRankingEvolution, PlayersStats } from './players-stats';
+import { RankingRegion } from './ranking.model';
 
 
-class Ranking {
+export class Ranking {
   public week: number;
   public rankings: RankingRegion[];
-}
-
-class RankingRegion {
-  public name: string;
-  public categories: RankingCategory[];
-}
-
-class RankingCategory {
-  public name: string;
-  public players: RankingPlayer[];
-}
-
-class RankingPlayer {
-  public position?: number;
-  public uniqueIndex: string;
-  public clubIndex: string;
-  public name: string;
-  public points: number;
 }
 
 
@@ -43,9 +26,10 @@ export class TopCalculator {
   5 - Dispatch players in correct categories
 
   */
+  public readonly playersStats: PlayersStats;
+
   private tabt: TabTRequestor;
   private readonly week: Week;
-  public readonly playersStats: PlayersStats;
   private readonly rankings: Ranking[];
   private readonly currentWeek: number;
 
@@ -82,6 +66,32 @@ export class TopCalculator {
     Config.logger.info('Top 6 script ended');
 
     return this.rankings;
+  }
+
+
+  public printRankings(week: number): string {
+    let text = '';
+    text = `${text}\nJournée ${week - 1}`;
+    const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });
+
+    for (const ranking of rankingCurrentWeek.rankings) {
+      text = `${text}\n\n------------------------------------------`;
+      text = `${text}\n---------- Classements ${ranking.name} ----------`;
+      text = `${text}\n------------------------------------------`;
+      for (const category of ranking.categories) {
+        text = `${text}\n\n--- Catégorie ${category.name}`;
+
+        for (const player of category.players) {
+          text = `${text}\n${player.position} ${player.uniqueIndex} ${Config.titleCase(player.name)} ${player.clubIndex} ${ player.points } `;
+        }
+      }
+    }
+    text = `${text}\n\nErreurs détectées: `;
+    for (const error of this.playersStats.errorsDetected) {
+      text = `${text}\n${error}`;
+    }
+
+    return text;
   }
 
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
@@ -193,32 +203,6 @@ export class TopCalculator {
       });
       this.rankings.push(rankingsCurrentWeek);
     }
-  }
-
-
-  public printRankings(week: number): string {
-    let text = '';
-    text = `${text}\nJournée ${week - 1}`;
-    const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });
-
-    for (const ranking of rankingCurrentWeek.rankings) {
-      text = `${text}\n\n------------------------------------------`;
-      text = `${text}\n---------- Classements ${ranking.name} ----------`;
-      text = `${text}\n------------------------------------------`;
-      for (const category of ranking.categories) {
-        text = `${text}\n\n--- Catégorie ${category.name}`;
-
-        for (const player of category.players) {
-          text = `${text}\n${player.position} ${player.uniqueIndex} ${Config.titleCase(player.name)} ${player.clubIndex} ${ player.points } `;
-        }
-      }
-    }
-    text = `${text}\n\nErreurs détectées: `;
-    for (const error of this.playersStats.errorsDetected) {
-      text = `${text}\n${error}`;
-    }
-
-    return text;
   }
 
 

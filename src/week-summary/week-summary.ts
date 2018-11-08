@@ -61,7 +61,6 @@ export class WeekSummary {
     return matches;
   }
 
-
   // @ts-ignore
   private groupMatches = (matches: TeamMatchEntry[]): IGroupedMatches[] => _.chain(matches)
     .uniqBy('MatchId')
@@ -73,9 +72,8 @@ export class WeekSummary {
 
       return { series, region, sex, matches: matchesSerie };
     })
-    // @ts-ignore
-    .filter(({ series, region, sex, matchs }: { series: string; region: string; sex: string; matchs: TeamMatchEntry[]; }) => series.indexOf('7') === -1)
-    .orderBy(['sex', 'region', 'series'], ['DESC', 'ASC', 'ASC'])
+    .filter((obj: { series: string; region: string; sex: string; matches: TeamMatchEntry[] }) => obj.series.indexOf('7') === -1)
+    .orderBy(['sex', 'region', 'series'],  ['desc', 'asc', 'asc'] as ReadonlyArray<'desc'|'asc'>)
     .value();
 
   private printResult(matchesGrouped: IGroupedMatches[], region: string, clubs: string[]): string {
