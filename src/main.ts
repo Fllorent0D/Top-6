@@ -8,11 +8,12 @@ import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
 
 const rule = new schedule.RecurrenceRule();
-rule.dayOfWeek = [0, 1, 2];
+rule.dayOfWeek = [0, 4];
 rule.hour = 20;
 rule.minute = 0;
 
 const job = schedule.scheduleJob(rule, (fireDate: Date) => {
+
   Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
   const week = new Week();
   const top: TopCalculator = new TopCalculator();
@@ -37,11 +38,12 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
       .catch((err: any) => {
         Config.logger.error(`Email sending error : ${err}`);
       });
-  } else {
+  } else if (currentDay === 4){
     dayJob = top.start().then((tops: any) => {
       firebase.saveTop(tops, top.playersStats);
     });
   }
+
   dayJob.then(() => {
     Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
   });
