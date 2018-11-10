@@ -186,7 +186,7 @@ export class TopCalculator {
         const orderedCategories = ranking.categories.map((category: any) => {
           const rank = _.chain(category.players)
             .orderBy(['points', 'name'], ['desc', 'asc'])
-            .slice(0, 10)
+            .slice(0, 12)
             .map((val: any, index: number) => ({ ...val, position: index + 1 }))
             .value();
 
