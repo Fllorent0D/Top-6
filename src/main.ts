@@ -2,7 +2,7 @@ import * as schedule from 'node-schedule';
 import { Config } from './config';
 
 import { FirebaseAdmin } from './firebase/firebase-admin';
-import { sendMail } from './helpers/mail';
+import { sendErrorMail, sendMail } from './helpers/mail';
 import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
@@ -18,17 +18,16 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
   const week = new Week();
   const top: TopCalculator = new TopCalculator();
   const summary: WeekSummary = new WeekSummary();
-  const firebase: FirebaseAdmin = new FirebaseAdmin();
+
   const currentDay: number = new Date().getDay();
   let dayJob: Promise<any>;
 
   if (currentDay === 0) {
     dayJob = Promise.all([summary.start(), top.start()])
-      .then(([summaryText, tops]: [string, any]) => {
-        firebase.saveTop(tops, top.playersStats);
+      .then((results: [string, any]) => {
         const topText = top.printRankings(week.getCurrentJournee());
 
-        return sendMail(summaryText, topText);
+        return sendMail(results[0], topText);
       })
       .then(([response, body]: [any, any]) => {
         Config.logger.info(`Email send!`);
@@ -38,7 +37,9 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
       .catch((err: any) => {
         Config.logger.error(`Email sending error : ${err}`);
       });
-  } else if (currentDay === 4){
+  } else if (currentDay === 4) {
+    const firebase: FirebaseAdmin = new FirebaseAdmin();
+
     dayJob = top.start().then((tops: any) => {
       firebase.saveTop(tops, top.playersStats);
     });
@@ -46,6 +47,10 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
 
   dayJob.then(() => {
     Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
+  }).catch((err: Error) => {
+    return sendErrorMail(err);
   });
+
 });
+
 Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);

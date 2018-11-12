@@ -1,10 +1,11 @@
+import * as  appRoot from 'app-root-path';
 import * as admin from 'firebase-admin';
+import * as fs from 'fs';
 import { Config } from '../config';
-
 
 export class FirebaseAdmin {
   constructor() {
-    const serviceAccount: any = Config.firebaseConfig;
+    const serviceAccount: any = JSON.parse(fs.readFileSync(`${appRoot}/beping-196714-firebase-adminsdk-0tn8d-22c3cc2319.json`, 'utf-8'));
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),

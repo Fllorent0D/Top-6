@@ -2,10 +2,11 @@ import * as client from '@sendgrid/client';
 import * as dateFormat from 'dateformat';
 import { Config } from '../config';
 
+client.setApiKey('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');
+
 const sendMail = (summaryText: string, topText: string): Promise<any> => {
   const date = dateFormat(new Date(), 'yyyy-mm-dd');
 
-  client.setApiKey('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');
 
   const data = {
     'content': [
@@ -56,4 +57,42 @@ const sendMail = (summaryText: string, topText: string): Promise<any> => {
   return client.request(request);
 };
 
-export { sendMail };
+const sendErrorMail = (error: Error): Promise<any> => {
+
+  const data = {
+    'content': [
+      {
+        'type': 'text/html',
+        'value': `Name: ${error.name}</br>Message: ${error.message}<br/>Stacktrace: ${error.stack}`
+      }
+    ],
+    'from': {
+      'email': 'florent.cardoen@beping.be',
+      'name': 'Florent Cardoen'
+    },
+    'personalizations': [
+      {
+        'subject': 'Error when calculting tops',
+        'to': [{
+          'email': 'f.cardoen@me.com',
+          'name': 'Florent Cardoen'
+        }]
+      }
+    ],
+    'reply_to': {
+      'email': 'f.cardoen@me.com',
+      'name': 'Florent Cardoen'
+    },
+    'subject': 'Error when calculting tops',
+
+  };
+  const request = {
+    body: data,
+    method: 'POST',
+    url: '/v3/mail/send'
+  };
+
+  return client.request(request);
+};
+
+export { sendMail, sendErrorMail };
