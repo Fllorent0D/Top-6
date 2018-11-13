@@ -1,6 +1,6 @@
 import { Config } from './config';
 
-import { sendErrorMail, sendMail } from './helpers/mail';
+import { sendErrorMail } from './helpers/mail';
 import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
@@ -12,13 +12,12 @@ const summary: WeekSummary = new WeekSummary();
 let dayJob: Promise<any>;
 
 dayJob = Promise.all([top.start(), summary.start()])
-  .then(([tops, summaryText]: [any, string]) => {
+  .then((results: [any, string]) => {
     const topText = top.printRankings(week.getCurrentJournee());
-    console.log(topText);
-
+    Config.logger.info(topText);
     //return sendMail(summaryText, topText);
 
-    return Promise.resolve([summaryText, 1]);
+    return Promise.resolve([results[1], 1]);
   })
   .then(([response, body]: [any, any]) => {
     Config.logger.info(`Email send!`);
