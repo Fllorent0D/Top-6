@@ -23,6 +23,7 @@ import {
   TournamentRegister,
   TournamentRegisterResponse
 } from './tabt-models';
+import { Config } from './config';
 
 
 export class TabTRequestor {
@@ -94,8 +95,7 @@ export class TabTRequestor {
     return createClientAsync(this.stub);
   }
 
-  private callUrl(url: string, args?: IRequest): Promise<any> {
-
+  private async callUrl(url: string, args?: IRequest, maxRetry: number = 5): Promise<any> {
 
     const argmentifiedUrl = url.split('/').map((part: string) => {
       if (part.charAt(0) === ':') {
@@ -134,7 +134,23 @@ export class TabTRequestor {
 
     const urlToCall = `http://localhost:5000/api${argmentifiedUrl}?${queryString}`;
 
-    return fetch(urlToCall, {headers: { 'x-frenoy-database': 'aftt' }}).then((res: any) => res.json());
+    const result = await fetch(urlToCall, {
+      headers: {
+        'x-frenoy-login': 'floca',
+        'x-frenoy-password': 'fca-1995'
+      }
+    });
+
+    if (result.status === 200) {
+      return result.json()
+    } else if (maxRetry > 0) {
+      Config.logger.info('Making a pause...');
+      await Config.timeout(20000);
+
+      return this.callUrl(url, args, maxRetry - 1);
+    } else {
+      throw new Error(await result.text())
+    }
   }
 
   private callOperation(operationToExecute: string, args: IRequest): Promise<any> {

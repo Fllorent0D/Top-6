@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 
 import { Config, IConfigCategoryRanking } from '../config';
-import { TeamMatchEntry, TeamMatchPlayerEntry, IndividualMatchResultEntry } from '../tabt-models';
+import { IndividualMatchResultEntry, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
 
 export interface IMatchItem {
   divisionIndex: number
@@ -96,34 +96,48 @@ export class PlayersStats {
 
         const players = (homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) ? _.get(match, 'MatchDetails.AwayPlayers.Players', []) : _.get(match, 'MatchDetails.HomePlayers.Players', []);
         const club = (homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) ? awayClub : homeClub;
+
         for (const player of players) {
           this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
         }
-      } else if (match.MatchDetails.DetailsCreated) {
 
+      } else if (match.MatchDetails.DetailsCreated) {
         //Process HomePlayer(s)
         if (!match.IsHomeForfeited && Config.getAllClubs().indexOf(match.HomeClub) > -1) {
-          for (const player of match.MatchDetails.HomePlayers.Players) {
-            if (!player.IsForfeited) {
-              // Calculate forfeit for each player
-              const forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, 'Home');
-              this.upsertPlayerStat(player, divisionId, weekName, homeClub, match.MatchId, forfeit);
-            }
-          }
+          this.processPlayersFromMatch(match, 'Home');
         }
-
         //Process AwayPlayer(s)
         if (!match.IsAwayForfeited && Config.getAllClubs().indexOf(match.AwayClub) > -1) {
-          for (const player of match.MatchDetails.AwayPlayers.Players) {
-            if (!player.IsForfeited) {
-              const forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, 'Away');
-              this.upsertPlayerStat(player, divisionId, weekName, awayClub, match.MatchId, forfeit);
-            }
+          this.processPlayersFromMatch(match, 'Away');
+        }
+      }
+    }
+  }
+
+  private processPlayersFromMatch(match: TeamMatchEntry, position: string) {
+    const players: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${position}Players.Players`);
+    const divisionId: number = _.get(match, 'DivisionId');
+    const weekName: number = _.get(match, 'WeekName');
+    const club: string = _.get(match, `${position}Club`);
+
+
+    for (const player of players) {
+      if (!player.IsForfeited) {
+        const playerShouldBeForfeited = this.checkIfPlayerShouldBeForfeited(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+        if (playerShouldBeForfeited === false) {
+          const forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+          this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, forfeit);
+        } else {
+          const error = `Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`;
+          if(this.errorsDetected.indexOf(error) === -1){
+            Config.logger.error(error);
+            this.errorsDetected.push(error);
           }
         }
       }
     }
   }
+
 
   private upsertPlayerStat(player: TeamMatchPlayerEntry, division: number, weekname: number, club: string, matchId: string, forfeit: number) {
     if (!_.get(player, 'UniqueIndex')) {
@@ -173,6 +187,18 @@ export class PlayersStats {
       .filter((individual: IndividualMatchResultEntry) => _.includes(_.get(individual, label, []), playerUniqueIndex))
       .filter((playerMatch: IndividualMatchResultEntry[]) => _.get(playerMatch, oppositeToCheck, false))
       .size()
+      .value();
+  }
+
+  private checkIfPlayerShouldBeForfeited(uniqueIndex: number, individualMatchResults: IndividualMatchResultEntry[], position: string): boolean {
+    const label = `${position}PlayerUniqueIndex`;
+    const forfeitLabel = `Is${position}Forfeited`;
+
+    return _.chain(individualMatchResults)
+      .filter((individual: IndividualMatchResultEntry) => _.includes(_.get(individual, label, []), uniqueIndex))
+      .filter((playerMatch: IndividualMatchResultEntry[]) => _.get(playerMatch, forfeitLabel, false))
+      .size()
+      .isEqual(4)
       .value();
   }
 }

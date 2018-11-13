@@ -102,10 +102,13 @@ export class TopCalculator {
     for (let i = 1; i < this.currentWeek; i = i + 1) {
       for (const club of clubs) {
 
-        await Config.timeout(4000);
+       // if (await this.tabt.shouldWait()) {
+          // await Config.timeout(10000);
+        // }
+
         Config.logger.info(`Top : Downloading ${club} weekname ${i}`);
         let matches = await this.downloadMatchesOfClubForWeek(club, i);
-        if (matches) {
+        if (matches && matches.length > 0) {
           matches = matches.filter((match: TeamMatchEntry) => divisions.indexOf(_.toNumber(match.DivisionId)) > -1);
           allMatches.push(...matches);
         }

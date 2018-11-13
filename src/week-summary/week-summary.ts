@@ -49,11 +49,11 @@ export class WeekSummary {
   private async downloadAllMatches(clubs: string[]): Promise<TeamMatchEntry[]> {
     const matches: TeamMatchEntry[] = [];
     for (const club of clubs) {
-      //await Config.timeout(5000);
+
       Config.logger.info(`Summary: Downloading this week of ${club}`);
       const matchesOfClub = await this.downloadMatchesOfClubForWeek(club);
 
-      if (matchesOfClub) {
+      if (matchesOfClub && matchesOfClub.length > 0) {
         matches.push(...matchesOfClub);
       }
     }
