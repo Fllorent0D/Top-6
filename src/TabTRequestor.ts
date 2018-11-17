@@ -144,8 +144,9 @@ export class TabTRequestor {
     if (result.status === 200) {
       return result.json()
     } else if (maxRetry > 0) {
-      Config.logger.info('Making a pause...');
-      await Config.timeout(20000);
+      const waitTime = (6 - maxRetry) * 20000;
+      Config.logger.info(`Making a pause for ${waitTime}ms...`);
+      await Config.timeout(waitTime);
 
       return this.callUrl(url, args, maxRetry - 1);
     } else {
