@@ -7,7 +7,7 @@ import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config'
 import { Week } from '../helpers/week';
 import { ClubEntry, GetClubsRequest, GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
 import { TabTRequestor } from '../TabTRequestor';
-import { IPlayerStats, IRankingEvolution, PlayersStats } from './players-stats';
+import { IRankingEvolution, PlayersStats } from './players-stats';
 import { RankingRegion } from './ranking.model';
 
 
@@ -216,6 +216,7 @@ export class TopCalculator {
 
   private downloadAllClubs(): Promise<ClubEntry[]> {
     const clubRequest = new GetClubsRequest();
+
     return this.tabt.getClubs(clubRequest);
   }
 }

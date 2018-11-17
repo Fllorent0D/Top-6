@@ -2,11 +2,10 @@ import * as _ from 'lodash';
 
 import { Config, IConfigCategoryRanking } from '../config';
 import {
-  GetClubsRequest,
+  ClubEntry,
   IndividualMatchResultEntry,
   TeamMatchEntry,
-  TeamMatchPlayerEntry,
-  ClubEntry
+  TeamMatchPlayerEntry
 } from '../tabt-models';
 
 export interface IMatchItem {
