@@ -1,7 +1,13 @@
 import * as _ from 'lodash';
 
 import { Config, IConfigCategoryRanking } from '../config';
-import { IndividualMatchResultEntry, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
+import {
+  GetClubsRequest,
+  IndividualMatchResultEntry,
+  TeamMatchEntry,
+  TeamMatchPlayerEntry,
+  ClubEntry
+} from '../tabt-models';
 
 export interface IMatchItem {
   divisionIndex: number
@@ -23,6 +29,7 @@ export interface IPlayerStats {
   uniqueIndex: number;
   name: string;
   clubIndex: string;
+  clubName: string;
   victoryHistory: IMatchItem[];
   rankingEvolution: IRankingEvolution[];
 
@@ -31,7 +38,7 @@ export interface IPlayerStats {
 
 export class PlayersStats {
   public currentWeek: number;
-  public readonly playersStats: { [index: string]: IPlayerStats };
+  public playersStats: { [index: string]: IPlayerStats };
   public errorsDetected: string[];
 
   constructor() {
@@ -103,15 +110,24 @@ export class PlayersStats {
 
       } else if (match.MatchDetails.DetailsCreated) {
         //Process HomePlayer(s)
-        if (!match.IsHomeForfeited && Config.getAllClubs().indexOf(match.HomeClub) > -1) {
+        if (Config.getAllClubs().indexOf(match.HomeClub) > -1) {
           this.processPlayersFromMatch(match, 'Home');
         }
         //Process AwayPlayer(s)
-        if (!match.IsAwayForfeited && Config.getAllClubs().indexOf(match.AwayClub) > -1) {
+        if (Config.getAllClubs().indexOf(match.AwayClub) > -1) {
           this.processPlayersFromMatch(match, 'Away');
         }
       }
     }
+  }
+
+  public attributeClubNameToEachPlayers(clubs: ClubEntry[]) {
+    _.forEach(this.playersStats, (value: IPlayerStats) => {
+      this.playersStats[value.uniqueIndex] = {
+        ...this.playersStats[value.uniqueIndex],
+        clubName: _.get(_.find(clubs, { 'UniqueIndex': value.clubIndex }), 'Name', '')
+      };
+    });
   }
 
   private processPlayersFromMatch(match: TeamMatchEntry, position: string) {
@@ -119,17 +135,24 @@ export class PlayersStats {
     const divisionId: number = _.get(match, 'DivisionId');
     const weekName: number = _.get(match, 'WeekName');
     const club: string = _.get(match, `${position}Club`);
-
+    const opposite: string = (position === 'Home') ? 'Away' : 'Home';
 
     for (const player of players) {
       if (!player.IsForfeited) {
         const playerShouldBeForfeited = this.checkIfPlayerShouldBeForfeited(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
         if (playerShouldBeForfeited === false) {
-          const forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+
+          let forfeit = 0;
+          if (_.get(match, `Is${opposite}Forfeited`, false)) {
+            forfeit = 4;
+          } else {
+            forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+          }
+
           this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, forfeit);
         } else {
           const error = `Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`;
-          if(this.errorsDetected.indexOf(error) === -1){
+          if (this.errorsDetected.indexOf(error) === -1) {
             Config.logger.error(error);
             this.errorsDetected.push(error);
           }
@@ -158,6 +181,7 @@ export class PlayersStats {
       //Not yet found in stats
       this.playersStats[player.UniqueIndex] = {
         'uniqueIndex': player.UniqueIndex,
+        'clubName': '',
         'name': `${player.LastName} ${player.FirstName}`,
         'clubIndex': club,
         'victoryHistory': [],

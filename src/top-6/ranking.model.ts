@@ -12,6 +12,7 @@ export class RankingPlayer {
   public position?: number;
   public uniqueIndex: string;
   public clubIndex: string;
+  public clubName: string;
   public name: string;
   public points: number;
 }

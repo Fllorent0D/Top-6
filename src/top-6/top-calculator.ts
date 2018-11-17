@@ -2,11 +2,12 @@ import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 
+import * as appRoot from 'app-root-path';
 import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config';
 import { Week } from '../helpers/week';
-import { GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
+import { ClubEntry, GetClubsRequest, GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
 import { TabTRequestor } from '../TabTRequestor';
-import { IRankingEvolution, PlayersStats } from './players-stats';
+import { IPlayerStats, IRankingEvolution, PlayersStats } from './players-stats';
 import { RankingRegion } from './ranking.model';
 
 
@@ -50,13 +51,16 @@ export class TopCalculator {
     Config.logger.info('Top 6 script started');
 
     const matches = await this.downloadAllMatches();
+    const clubs = await this.downloadAllClubs();
+
     this.playersStats.processPlayersFromMatches(matches);
     this.playersStats.attributeDivisionToEachPlayers();
+    this.playersStats.attributeClubNameToEachPlayers(clubs);
 
     Config.logger.info('Calculating rankings');
     this.createRankings();
 
-    fs.writeFile(`debug/players-${dateFormat(new Date(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
+    fs.writeFile(`${appRoot}/players-${dateFormat(new Date(), 'yyyy-mm-dd')}.json`, JSON.stringify(this.playersStats), 'utf8', (err: any) => {
       if (err) {
         Config.logger.info('Error while saving debug data : ', err);
       } else {
@@ -102,8 +106,8 @@ export class TopCalculator {
     for (let i = 1; i < this.currentWeek; i = i + 1) {
       for (const club of clubs) {
 
-       // if (await this.tabt.shouldWait()) {
-          // await Config.timeout(10000);
+        // if (await this.tabt.shouldWait()) {
+        // await Config.timeout(10000);
         // }
 
         Config.logger.info(`Top : Downloading ${club} weekname ${i}`);
@@ -176,6 +180,7 @@ export class TopCalculator {
             // Push the player to the correct category and region
             rankingsCurrentWeek.rankings[rankingRegionIndex].categories[categoryIndex].players.push({
               uniqueIndex: player.uniqueIndex,
+              clubName: player.clubName,
               clubIndex: player.clubIndex,
               name: player.name,
               points: currentPointsPlayer.points
@@ -209,4 +214,8 @@ export class TopCalculator {
   }
 
 
+  private downloadAllClubs(): Promise<ClubEntry[]> {
+    const clubRequest = new GetClubsRequest();
+    return this.tabt.getClubs(clubRequest);
+  }
 }

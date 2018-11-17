@@ -15,11 +15,11 @@ export class FirebaseAdmin {
   }
 
   public saveTop(top: any, debug: any) {
-    admin.database().ref('/tops').set(top, () => {
-      Config.logger.info('Top saved in firebase');
+    admin.database().ref('/tops').set(top, (err) => {
+      Config.logger.info('Top saved in firebase', err);
     });
-    admin.database().ref('/debug').set(debug, () => {
-      Config.logger.info('Debug in firebase');
+    admin.database().ref('/debug').set(debug, (err) => {
+      Config.logger.info('Debug in firebase', err);
     });
   }
 }
