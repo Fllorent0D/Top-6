@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import * as fetch from 'node-fetch';
 
 import { Client, createClientAsync } from 'soap';
+import { Config } from './config';
 import {
   ClubEntry,
   DivisionEntry,
@@ -23,7 +24,6 @@ import {
   TournamentRegister,
   TournamentRegisterResponse
 } from './tabt-models';
-import { Config } from './config';
 
 
 export class TabTRequestor {
@@ -134,26 +134,28 @@ export class TabTRequestor {
 
     const urlToCall = `http://localhost:5000/api${argmentifiedUrl}?${queryString}`;
 
-    const result = await fetch(urlToCall, {
+    return fetch(urlToCall, {
       headers: {
         'x-frenoy-login': 'floca',
         'x-frenoy-password': 'fca-1995',
         'x-frenoy-database': 'aftt'
       }
+    }).then(async (res: any) => {
+      if (res.status === 200) {
+        return res.json()
+      } else if (maxRetry > 0) {
+        const waitTime = (6 - maxRetry) * 20000;
+        Config.logger.debug(res);
+        Config.logger.info(`Making a pause for ${waitTime}ms...`);
+        await Config.timeout(waitTime);
+
+        return this.callUrl(url, args, maxRetry - 1);
+      } else {
+        throw new Error(await res.text())
+      }
     });
 
-    if (result.status === 200) {
-      return result.json()
-    } else if (maxRetry > 0) {
-      const waitTime = (6 - maxRetry) * 20000;
-      Config.logger.debug(result);
-      Config.logger.info(`Making a pause for ${waitTime}ms...`);
-      await Config.timeout(waitTime);
 
-      return this.callUrl(url, args, maxRetry - 1);
-    } else {
-      throw new Error(await result.text())
-    }
   }
 
   private callOperation(operationToExecute: string, args: IRequest): Promise<any> {
