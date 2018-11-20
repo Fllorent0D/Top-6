@@ -4,7 +4,7 @@ import { Config } from '../config';
 
 client.setApiKey('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');
 
-const sendMail = (summaryText: string, topText: string): Promise<any> => {
+const sendMail = (summaryText: string, topText: string, to: any = Config.mailConfig.to): Promise<any> => {
   const date = dateFormat(new Date(), 'yyyy-mm-dd');
 
 
@@ -22,7 +22,7 @@ const sendMail = (summaryText: string, topText: string): Promise<any> => {
     'personalizations': [
       {
         'subject': Config.mailConfig.subject,
-        'to': Config.mailConfig.to
+        'to': to
       }
     ],
     'reply_to': {

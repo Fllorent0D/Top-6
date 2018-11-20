@@ -17,8 +17,7 @@ dayJob = Promise.all([top.start(), summary.start()])
     //firebase.saveTop(results[0], top.playersStats);
     Config.logger.info(topText);
 
-    return sendMail(results[1], topText);
-
+    return sendMail(results[1], topText, [{ 'email': 'f.cardoen@me.com', 'name': 'Florent Cardoen' }]);
     //return Promise.resolve([results[1], 1]);
   })
   .then(([response, body]: [any, any]) => {
