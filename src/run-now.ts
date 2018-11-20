@@ -4,12 +4,10 @@ import { sendErrorMail, sendMail } from './helpers/mail';
 import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
-import { FirebaseAdmin } from './firebase/firebase-admin';
 
 const week = new Week();
 const top: TopCalculator = new TopCalculator();
 const summary: WeekSummary = new WeekSummary();
-const firebase: FirebaseAdmin = new FirebaseAdmin();
 
 let dayJob: Promise<any>;
 
