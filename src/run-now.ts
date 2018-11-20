@@ -1,6 +1,6 @@
 import { Config } from './config';
 
-import { sendErrorMail } from './helpers/mail';
+import { sendErrorMail, sendMail } from './helpers/mail';
 import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
@@ -16,12 +16,12 @@ let dayJob: Promise<any>;
 dayJob = Promise.all([top.start(), summary.start()])
   .then((results: [any, string]) => {
     const topText = top.printRankings(week.getCurrentJournee());
-    firebase.saveTop(results[0], top.playersStats);
-
+    //firebase.saveTop(results[0], top.playersStats);
     Config.logger.info(topText);
-    //return sendMail(summaryText, topText);
 
-    return Promise.resolve([results[1], 1]);
+    return sendMail(results[1], topText);
+
+    //return Promise.resolve([results[1], 1]);
   })
   .then(([response, body]: [any, any]) => {
     Config.logger.info(`Email send!`);

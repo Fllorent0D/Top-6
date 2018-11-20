@@ -137,7 +137,8 @@ export class TabTRequestor {
     const result = await fetch(urlToCall, {
       headers: {
         'x-frenoy-login': 'floca',
-        'x-frenoy-password': 'fca-1995'
+        'x-frenoy-password': 'fca-1995',
+        'x-frenoy-database': 'aftt'
       }
     });
 
@@ -145,6 +146,7 @@ export class TabTRequestor {
       return result.json()
     } else if (maxRetry > 0) {
       const waitTime = (6 - maxRetry) * 20000;
+      Config.logger.debug(result);
       Config.logger.info(`Making a pause for ${waitTime}ms...`);
       await Config.timeout(waitTime);
 
