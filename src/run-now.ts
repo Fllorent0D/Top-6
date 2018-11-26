@@ -1,23 +1,23 @@
 import { Config } from './config';
 
 import { sendErrorMail, sendMail } from './helpers/mail';
-import { Week } from './helpers/week';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
 
-const week = new Week();
 const top: TopCalculator = new TopCalculator();
 const summary: WeekSummary = new WeekSummary();
 
 let dayJob: Promise<any>;
 
 dayJob = Promise.all([top.start(), summary.start()])
-  .then((results: [any, string]) => {
-    const topText = top.printRankings(week.getCurrentJournee());
-    //firebase.saveTop(results[0], top.playersStats);
-    Config.logger.info(topText);
-
-    return sendMail(results[1], topText, [{ 'email': 'f.cardoen@me.com', 'name': 'Florent Cardoen' }]);
+  .then(([topTexts, summaryTexts]: [{ name: string; text: string }[], { name: string; text: string }[]]) => {
+    // const topText = top.printRankings(week.getCurrentJournee());
+    //firebase.saveTop(top.rankings, top.playersStats);
+    //Config.logger.info(topTexts);
+    const errors = top.playersStats.errorsDetected;
+    const notices = top.playersStats.noticesDetected;
+//[{ 'email': 'fcardoen@gmail.com', 'name': 'Florent Cardoen' }]
+    return sendMail(summaryTexts, topTexts, errors, notices);
     //return Promise.resolve([results[1], 1]);
   })
   .then(([response, body]: [any, any]) => {

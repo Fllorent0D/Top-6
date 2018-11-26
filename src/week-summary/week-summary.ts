@@ -29,21 +29,26 @@ export class WeekSummary {
     return lastWeek;
   }
 
-  public async start(): Promise<string> {
+  public async start(): Promise<{ name: string; text: string }[]> {
     Config.logger.info('Script summary started');
-    let text = '';
+    const technicsTexts: { name: string; text: string }[] = [];
+
     for (const region of Config.regions) {
       Config.logger.info(`Starting summary for region ${region.name}`);
 
       const matches = await this.downloadAllMatches(region.clubs);
       const groupedMatch = this.groupMatches(matches);
-      text = text + this.printResult(groupedMatch, region.name, region.clubs);
+
+      technicsTexts.push({
+        name: region.name,
+        text: this.printResult(groupedMatch, region.name, region.clubs)
+      });
 
       Config.logger.info(`Summary for region ${region.name} ended`);
     }
     Config.logger.info('Script summary ended');
 
-    return text;
+    return technicsTexts;
   }
 
   private async downloadAllMatches(clubs: string[]): Promise<TeamMatchEntry[]> {
@@ -73,8 +78,9 @@ export class WeekSummary {
       return { series, region, sex, matches: matchesSerie };
     })
     .filter((obj: { series: string; region: string; sex: string; matches: TeamMatchEntry[] }) => obj.series.indexOf('7') === -1)
-    .orderBy(['sex', 'region', 'series'],  ['desc', 'asc', 'asc'] as ReadonlyArray<'desc'|'asc'>)
+    .orderBy(['sex', 'region', 'series'], ['asc', 'asc', 'asc'] as ReadonlyArray<'desc' | 'asc'>)
     .value();
+
 
   private printResult(matchesGrouped: IGroupedMatches[], region: string, clubs: string[]): string {
     let text = `\n\n------------------------------------------`;

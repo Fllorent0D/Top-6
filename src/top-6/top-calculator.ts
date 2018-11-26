@@ -1,6 +1,7 @@
 import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
 import * as _ from 'lodash';
+import * as pad from 'pad';
 
 import * as appRoot from 'app-root-path';
 import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config';
@@ -28,10 +29,10 @@ export class TopCalculator {
 
   */
   public readonly playersStats: PlayersStats;
+  public readonly rankings: Ranking[];
 
   private tabt: TabTRequestor;
   private readonly week: Week;
-  private readonly rankings: Ranking[];
   private readonly currentWeek: number;
 
   constructor() {
@@ -47,7 +48,7 @@ export class TopCalculator {
   }
 
 
-  public async start(): Promise<Ranking[]> {
+  public async start(): Promise<{ name: string; text: string }[]> {
     Config.logger.info('Top 6 script started');
 
     const matches = await this.downloadAllMatches();
@@ -69,16 +70,16 @@ export class TopCalculator {
     });
     Config.logger.info('Top 6 script ended');
 
-    return this.rankings;
+    return this.printRankings(this.week.getCurrentJournee());
   }
 
 
-  public printRankings(week: number): string {
-    let text = '';
-    text = `${text}\nJournée ${week - 1}`;
+  public printRankings(week: number): { name: string; text: string }[] {
     const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });
-
+    const rankingsTexts: { name: string; text: string }[] = [];
     for (const ranking of rankingCurrentWeek.rankings) {
+      let text = '';
+      text = `${text}\nJournée ${week - 1}`;
       text = `${text}\n\n------------------------------------------`;
       text = `${text}\n---------- Classements ${ranking.name} ----------`;
       text = `${text}\n------------------------------------------`;
@@ -86,16 +87,21 @@ export class TopCalculator {
         text = `${text}\n\n--- Catégorie ${category.name}`;
 
         for (const player of category.players) {
-          text = `${text}\n${player.position} ${player.uniqueIndex} ${Config.titleCase(player.name)} ${player.clubIndex} ${ player.points } `;
+          text = `${text}\n${player.position} - ${player.uniqueIndex} ${Config.titleCase(player.name)} - ${player.clubName} ${player.clubIndex} - ${ player.points } points `;
         }
       }
+      rankingsTexts.push({
+        name: ranking.name,
+        text: text
+      });
     }
+    /*
     text = `${text}\n\nErreurs détectées: `;
     for (const error of this.playersStats.errorsDetected) {
       text = `${text}\n${error}`;
     }
-
-    return text;
+*/
+    return rankingsTexts;
   }
 
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {

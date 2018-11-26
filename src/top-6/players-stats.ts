@@ -39,10 +39,12 @@ export class PlayersStats {
   public currentWeek: number;
   public playersStats: { [index: string]: IPlayerStats };
   public errorsDetected: string[];
+  public noticesDetected: string[];
 
   constructor() {
     this.playersStats = {};
     this.errorsDetected = [];
+    this.noticesDetected = [];
   }
 
   public attributeDivisionToEachPlayers() {
@@ -135,6 +137,12 @@ export class PlayersStats {
     const weekName: number = _.get(match, 'WeekName');
     const club: string = _.get(match, `${position}Club`);
     const opposite: string = (position === 'Home') ? 'Away' : 'Home';
+    const oppositePlayers: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${opposite}Players.Players`, []);
+    const lghForfeitOpposite: number = _.filter(oppositePlayers, 'IsForfeited').length;
+
+    if (_.get(match, `Is${position}Forfeited`, false) && _.get(match, `Is${opposite}Withdrawn`, 'N') === 'N') {
+      return;
+    }
 
     for (const player of players) {
       if (!player.IsForfeited) {
@@ -145,15 +153,18 @@ export class PlayersStats {
           if (_.get(match, `Is${opposite}Forfeited`, false)) {
             forfeit = 4;
           } else {
-            forfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+            forfeit = lghForfeitOpposite;
+            const matchPlayedForfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+            if (matchPlayedForfeit !== 0 && matchPlayedForfeit > forfeit) {
+              forfeit = matchPlayedForfeit;
+              //this.addNotice(`Match : ${match.MatchId} division ${match.DivisionId} journée ${match.WeekName} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} a un nombre de match forfeit supérieur au nombre de joueur noté forfeit. Les matchs comptés forfeits sont compts dans ce cas`);
+            }
           }
 
           this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, forfeit);
         } else {
-          const error = `Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`;
-          if (this.errorsDetected.indexOf(error) === -1) {
-            Config.logger.error(error);
-            this.errorsDetected.push(error);
+          if (_.get(match, `Is${opposite}Withdrawn`, 'N') === 'N' && _.get(match, `Is${position}Withdrawn`, 'N') === 'N') {
+            this.addError(`Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`);
           }
         }
       }
@@ -194,9 +205,7 @@ export class PlayersStats {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);
     } else {
       if (alreadyExistingResult.matchId !== matchId) {
-        const error = `${player.FirstName} ${player.LastName} ${player.UniqueIndex} a été inscrit sur deux feuilles de match différentes à la semaine ${weekname}. Match 1 : ${alreadyExistingResult.matchId}, Match2 : ${matchId}`;
-        Config.logger.error(error);
-        this.errorsDetected.push(error);
+        this.addError(`${player.FirstName} ${player.LastName} ${player.UniqueIndex} a été inscrit sur deux feuilles de match différentes à la semaine ${weekname}. Match 1 : ${alreadyExistingResult.matchId}, Match2 : ${matchId}`);
       }
     }
   }
@@ -224,4 +233,19 @@ export class PlayersStats {
       .isEqual(4)
       .value();
   }
+
+  private addError(error: string): void {
+    if (this.errorsDetected.indexOf(error) === -1) {
+      Config.logger.error(error);
+      this.errorsDetected.push(error);
+    }
+  }
+
+  private addNotice(notice: string): void {
+    if (this.noticesDetected.indexOf(notice) === -1) {
+      Config.logger.info(notice);
+      this.noticesDetected.push(notice);
+    }
+  }
+
 }
