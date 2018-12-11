@@ -22,4 +22,13 @@ export class FirebaseAdmin {
       Config.logger.info('Debug in firebase', err);
     });
   }
+
+  public sendNotification() {
+    admin.messaging().sendToTopic('Top6', {
+      notification: {
+        title: 'Classement Top 6',
+        body: 'Le nouveau classement Top 6 est disponible sur BePing'
+      }
+    })
+  }
 }

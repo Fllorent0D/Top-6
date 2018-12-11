@@ -1,7 +1,6 @@
 import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
 import * as _ from 'lodash';
-import * as pad from 'pad';
 
 import * as appRoot from 'app-root-path';
 import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config';

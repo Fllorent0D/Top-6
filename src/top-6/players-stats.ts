@@ -1,12 +1,7 @@
 import * as _ from 'lodash';
 
 import { Config, IConfigCategoryRanking } from '../config';
-import {
-  ClubEntry,
-  IndividualMatchResultEntry,
-  TeamMatchEntry,
-  TeamMatchPlayerEntry
-} from '../tabt-models';
+import { ClubEntry, IndividualMatchResultEntry, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
 
 export interface IMatchItem {
   divisionIndex: number
@@ -139,19 +134,31 @@ export class PlayersStats {
     const opposite: string = (position === 'Home') ? 'Away' : 'Home';
     const oppositePlayers: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${opposite}Players.Players`, []);
     const lghForfeitOpposite: number = _.filter(oppositePlayers, 'IsForfeited').length;
+    const oppositeIsFG: boolean = _.get(match, `Is${opposite}Forfeited`, false) && _.get(match, `Is${opposite}Withdrawn`, 'N') === '1';
 
-    if (_.get(match, `Is${position}Forfeited`, false) && _.get(match, `Is${opposite}Withdrawn`, 'N') === 'N') {
+    // position team is FG
+    if (_.get(match, `Is${position}Forfeited`, false) &&
+      _.get(match, `Is${position}Withdrawn`, 'N') === '1') {
       return;
     }
 
     for (const player of players) {
-      if (!player.IsForfeited) {
+      if (!player.IsForfeited || oppositeIsFG) {
         const playerShouldBeForfeited = this.checkIfPlayerShouldBeForfeited(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
         if (playerShouldBeForfeited === false) {
 
           let forfeit = 0;
           if (_.get(match, `Is${opposite}Forfeited`, false)) {
-            forfeit = 4;
+            if(_.get(player, `VictoryCount`)) {
+              forfeit = lghForfeitOpposite;
+              const matchPlayedForfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
+              if (matchPlayedForfeit !== 0 && matchPlayedForfeit > forfeit) {
+                forfeit = matchPlayedForfeit;
+                this.addNotice(`Match : ${match.MatchId} division ${match.DivisionId} journée ${match.WeekName} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} a un nombre de match forfeit supérieur au nombre de joueur noté forfeit. Les matchs comptés forfeits sont compts dans ce cas`);
+              }
+            } else {
+              forfeit = 4;
+            }
           } else {
             forfeit = lghForfeitOpposite;
             const matchPlayedForfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
@@ -163,7 +170,10 @@ export class PlayersStats {
 
           this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, forfeit);
         } else {
-          if (_.get(match, `Is${opposite}Withdrawn`, 'N') === 'N' && _.get(match, `Is${position}Withdrawn`, 'N') === 'N') {
+          if (_.get(match, `Is${opposite}Withdrawn`, 'N') === 'N' &&
+            _.get(match, `Is${position}Withdrawn`, 'N') === 'N' &&
+            _.get(match, `Is${position}Forfeited`, false) === false
+          ) {
             this.addError(`Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`);
           }
         }
@@ -177,13 +187,15 @@ export class PlayersStats {
       return;
     }
 
+
+
     const newVictoryHistory: IMatchItem = {
       'divisionIndex': division,
       'divisionCategory': Config.mapDivisionIdToCategory(_.toNumber(division)).name,
       'weekName': weekname,
-      'victoryCount': player.VictoryCount,
-      'forfeit': forfeit,
-      'pointsWon': Config.mapVictoryToPoint(player.VictoryCount + forfeit),
+      'victoryCount': player.VictoryCount || 0,
+      'forfeit': forfeit || 0,
+      'pointsWon': Config.mapVictoryToPoint(_.get(player, 'VictoryCount', 0) + forfeit),
       'matchId': matchId
     };
 
