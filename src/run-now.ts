@@ -10,20 +10,22 @@ const summary: WeekSummary = new WeekSummary();
 
 let dayJob: Promise<any>;
 const firebase: FirebaseAdmin = new FirebaseAdmin();
+const currentDay: number = new Date().getDay();
 
 dayJob = Promise.all([top.start(), summary.start()])
   .then(([topTexts, summaryTexts]: [{ name: string; text: string }[], { name: string; text: string }[]]) => {
-    // const topText = top.printRankings(week.getCurrentJournee());
-    firebase.saveTop(top.rankings, top.playersStats);
-    firebase.sendNotification();
 
-    //Config.logger.info(topTexts);
-    const errors = top.playersStats.errorsDetected;
-    const notices = top.playersStats.noticesDetected;
-    //[{ 'email': 'fcardoen@gmail.com', 'name': 'Florent Cardoen' }]
+    if (currentDay === 4) {
+      firebase.saveTop(top.rankings, top.playersStats);
 
-    return sendMail(summaryTexts, topTexts, errors, notices);
-    //return Promise.resolve([results[1], 1]);
+      return FirebaseAdmin.sendNotification();
+    } else if (currentDay === 0) {
+      const errors = top.playersStats.errorsDetected;
+      const notices = top.playersStats.noticesDetected;
+      //[{ 'email': 'fcardoen@gmail.com', 'name': 'Florent Cardoen' }]
+
+      return sendMail(summaryTexts, topTexts, errors, notices);
+    }
   })
   .then(([response, body]: [any, any]) => {
     Config.logger.info(`Email send!`);

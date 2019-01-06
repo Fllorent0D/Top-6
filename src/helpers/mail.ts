@@ -33,15 +33,20 @@ const sendMail =
     }
     let message = Config.mailConfig.message;
 
-    message = `${message}<br/><br/>Erreurs détectées:<br/>`;
-    for (const error of errors) {
-      message = `${message} ${error}<br/>`;
+    if(errors.length > 0){
+      message = `${message}<br/><br/>Erreurs détectées:<br/>`;
+      for (const error of errors) {
+        message = `${message} ${error}<br/>`;
+      }
     }
 
-    message = `${message}<br/><br/>Avertissements:<br/>`;
-    for (const notice of notices) {
-      message = `${message} ${notice}<br/>`;
+    if(notices.length > 0){
+      message = `${message}<br/><br/>Avertissements:<br/>`;
+      for (const notice of notices) {
+        message = `${message} ${notice}<br/>`;
+      }
     }
+
 
     const data = {
       'content': [

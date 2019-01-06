@@ -14,6 +14,28 @@ export class FirebaseAdmin {
 
   }
 
+  public static sendNotification() {
+    return admin.messaging().sendToTopic('Top6', {
+      notification: {
+        title: 'Classement Top 6',
+        body: 'Le nouveau classement Top 6 est disponible sur BePing'
+      }
+    });
+  }
+
+  public static SendNotificationToTopic(topic: string, title: string, body: string) {
+    return admin.messaging().sendToTopic(topic, {
+      notification: {
+        title,
+        body
+      }
+    });
+  }
+
+  public static GetDatabase() {
+    return admin.database();
+  }
+
   public saveTop(top: any, debug: any) {
     admin.database().ref('/tops').set(top, (err) => {
       Config.logger.info('Top saved in firebase', err);
@@ -21,14 +43,5 @@ export class FirebaseAdmin {
     admin.database().ref('/debug').set(debug, (err) => {
       Config.logger.info('Debug in firebase', err);
     });
-  }
-
-  public sendNotification() {
-    admin.messaging().sendToTopic('Top6', {
-      notification: {
-        title: 'Classement Top 6',
-        body: 'Le nouveau classement Top 6 est disponible sur BePing'
-      }
-    })
   }
 }

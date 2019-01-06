@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import * as fetch from 'node-fetch';
 
+import * as randomIpv4 from 'random-ipv4';
 import { Client, createClientAsync } from 'soap';
 import { Config } from './config';
 import {
@@ -20,18 +21,23 @@ import {
   TeamEntry,
   TeamMatchEntry,
   TestRequest,
-  TestResponse, TournamentEntry,
+  TestResponse,
+  TournamentEntry,
   TournamentRegister,
   TournamentRegisterResponse
 } from './tabt-models';
 
-
 export class TabTRequestor {
   public stub: string = 'https://resultats.aftt.be/api/?wsdl';
+  private currentIp: string;
+
+  constructor() {
+    this.reloadIp();
+  }
+
 
   public getSeasons(): Promise<GetSeasonsResponse> {
     return this.callUrl('/seasons');
-
     //return this.callOperation("GetSeasons", {} as IRequest);
   }
 
@@ -91,6 +97,18 @@ export class TabTRequestor {
     return this.callUrl('/test', args);
   }
 
+  public getMatchesOfDivisionForToday(divisionId: number): Promise<TeamMatchEntry[]> {
+    const matchRequest = new GetMatchesRequest();
+    matchRequest.DivisionId = divisionId;
+    //matchRequest.YearDateFrom = dateFormat(new Date(), 'yyyy-mm-dd');
+    //matchRequest.YearDateTo = dateFormat(new Date().setDate(new Date().getDate() + 1), 'yyyy-mm-dd');
+    matchRequest.YearDateFrom = '2018-11-03';
+    matchRequest.YearDateTo = '2018-11-04';
+
+    return this.getMatches(matchRequest);
+  }
+
+
   private createClient(): Promise<Client> {
     return createClientAsync(this.stub);
   }
@@ -138,20 +156,20 @@ export class TabTRequestor {
       headers: {
         'x-frenoy-login': 'floca',
         'x-frenoy-password': 'fca-1995',
-        'x-frenoy-database': 'aftt'
+        'x-frenoy-database': 'aftt',
+        'x-forwarded-for': this.currentIp
       }
     }).then(async (res: any) => {
       if (res.status === 200) {
-        return res.json()
+        return res.json();
       } else if (maxRetry > 0) {
-        const waitTime = (6 - maxRetry) * 20000;
-        Config.logger.debug(res);
-        Config.logger.info(`Making a pause for ${waitTime}ms...`);
-        await Config.timeout(waitTime);
+
+        this.reloadIp();
+        Config.logger.info(`Changing IP to ${this.currentIp}...`);
 
         return this.callUrl(url, args, maxRetry - 1);
       } else {
-        throw new Error(await res.text())
+        throw new Error(await res.text());
       }
     });
 
@@ -167,5 +185,25 @@ export class TabTRequestor {
       .then((result: any) => Promise.resolve(result[0]));
   }
 
+  private reloadIp() {
+    this.currentIp = randomIpv4('{token1}.{token2}.{token3}.{token4}', {
+      token1: {
+        min: 127,
+        max: 127
+      },
+      token2: {
+        min: 127,
+        max: 192
+      },
+      token3: {
+        min: 0,
+        max: 200
+      },
+      token4: {
+        min: 0,
+        max: 200
+      }
+    });
+  }
 
 }

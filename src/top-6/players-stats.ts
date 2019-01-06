@@ -187,8 +187,6 @@ export class PlayersStats {
       return;
     }
 
-
-
     const newVictoryHistory: IMatchItem = {
       'divisionIndex': division,
       'divisionCategory': Config.mapDivisionIdToCategory(_.toNumber(division)).name,
