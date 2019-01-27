@@ -10,17 +10,22 @@ import MessagingTopicResponse = admin.messaging.MessagingTopicResponse;
 
 const rule = new schedule.RecurrenceRule();
 rule.dayOfWeek = [0, 4];
-rule.hour = 21;
+rule.hour = [21, 8];
 rule.minute = 0;
 
 const job = schedule.scheduleJob(rule, (fireDate: Date) => {
+
+  const currentDay: number = new Date().getDay();
+  const currentHour: number = new Date().getHours();
+
+  if((currentDay === 0 && currentHour === 8) || (currentDay === 4 && currentHour === 21)){
+    return;
+  }
 
   Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
 
   const top: TopCalculator = new TopCalculator();
   const summary: WeekSummary = new WeekSummary();
-
-  const currentDay: number = new Date().getDay();
 
   if (currentDay === 0) {
     Promise.all([summary.start(), top.start()])
