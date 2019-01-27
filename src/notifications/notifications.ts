@@ -43,7 +43,7 @@ export class Notifications {
 
     this.interval = setInterval(async () => {
       return this.checkForNotifications();
-    }, 5000);
+    }, intervalTime);
   }
 
   private stopInterval() {

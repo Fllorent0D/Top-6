@@ -18,7 +18,8 @@ export class FirebaseAdmin {
     return admin.messaging().sendToTopic('Top6', {
       notification: {
         title: 'Classement Top 6',
-        body: 'Le nouveau classement Top 6 est disponible sur BePing'
+        body: 'Le nouveau classement Top 6 est disponible sur BePing',
+        sound: 'default'
       }
     });
   }
