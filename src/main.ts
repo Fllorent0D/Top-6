@@ -52,8 +52,8 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
     const firebase: FirebaseAdmin = new FirebaseAdmin();
 
     top.start()
-      .then((tops: any) => {
-        firebase.saveTop(tops.rankings, tops.playersStats);
+      .then(() => {
+        firebase.saveTop(top.rankings, top.playersStats);
 
         return FirebaseAdmin.sendNotification()
           .then((notification: MessagingTopicResponse) => {
