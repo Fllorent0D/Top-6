@@ -18,7 +18,7 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
   const currentDay: number = new Date().getDay();
   const currentHour: number = new Date().getHours();
 
-  if((currentDay === 0 && currentHour === 8) || (currentDay === 4 && currentHour === 21)){
+  if ((currentDay === 0 && currentHour === 8) || (currentDay === 4 && currentHour === 21)) {
     return;
   }
 
@@ -60,6 +60,11 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
             Config.logger.info(`Notification sent ${notification}`);
             Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
           });
+      })
+      .catch((err: any) => {
+        Config.logger.error(`Email sending error : ${err}`);
+
+        return sendErrorMail(err);
       });
   }
 });
