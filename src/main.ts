@@ -8,6 +8,7 @@ import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
 import MessagingTopicResponse = admin.messaging.MessagingTopicResponse;
 
+const firebase: FirebaseAdmin = new FirebaseAdmin();
 const rule = new schedule.RecurrenceRule();
 rule.dayOfWeek = [0, 4];
 rule.hour = [21, 8];
@@ -49,7 +50,6 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
         return sendErrorMail(err);
       });
   } else if (currentDay === 4) {
-    const firebase: FirebaseAdmin = new FirebaseAdmin();
 
     top.start()
       .then(() => {
