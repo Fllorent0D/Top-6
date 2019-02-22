@@ -49,7 +49,7 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
 
         return sendErrorMail(err);
       });
-  } else if (currentDay === 4) {
+  } else {
 
     top.start()
       .then(() => {
