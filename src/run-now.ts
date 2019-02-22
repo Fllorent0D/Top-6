@@ -16,14 +16,7 @@ const currentDay: number = new Date().getDay();
 Promise.all([top.start(), summary.start()])
   .then(([topTexts, summaryTexts]: [{ name: string; text: string }[], { name: string; text: string }[]]) => {
 
-    if (currentDay === 4) {
-      firebase.saveTop(top.rankings, top.playersStats);
-
-      return FirebaseAdmin.sendNotification()
-        .then((notification: MessagingTopicResponse) => {
-          Config.logger.info(`Notification sent ${notification}`);
-        });
-    } else {
+    if (currentDay === 0){
       const errors = top.playersStats.errorsDetected;
       const notices = top.playersStats.noticesDetected;
       //[{ 'email': 'fcardoen@gmail.com', 'name': 'Florent Cardoen' }]
@@ -33,6 +26,13 @@ Promise.all([top.start(), summary.start()])
           Config.logger.info(`Email send!`);
           Config.logger.info(`Response: ${body}`);
           Config.logger.info(`Status code: ${response.statusCode}`);
+        });
+    } else {
+      firebase.saveTop(top.rankings, top.playersStats);
+
+      return FirebaseAdmin.sendNotification()
+        .then((notification: MessagingTopicResponse) => {
+          Config.logger.info(`Notification sent ${notification}`);
         });
     }
   })
