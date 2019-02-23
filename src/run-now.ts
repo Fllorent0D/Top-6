@@ -32,7 +32,7 @@ Promise.all([top.start(), summary.start()])
 
       return FirebaseAdmin.sendNotification()
         .then((notification: MessagingTopicResponse) => {
-          Config.logger.info(`Notification sent ${notification}`);
+          Config.logger.info(`Notification sent ${JSON.stringify(notification)}`);
         });
     }
   })

@@ -71,7 +71,7 @@ export class Notifications {
 
     if (matches) {
       for (const match of matches) {
-        //await FirebaseAdmin.SendNotificationToTopic(`results_division_${division}`, `${match.HomeTeam} - ${match.AwayTeam} : rencontre terminée`, `Score final ${match.Score}`);
+        await FirebaseAdmin.SendNotificationToTopic(`results_division_${division}`, `${match.HomeTeam} - ${match.AwayTeam} : rencontre terminée`, `Score final ${match.Score}`);
 
         Config.logger.info(`Sending notification for match ${match.MatchId}`);
         try {

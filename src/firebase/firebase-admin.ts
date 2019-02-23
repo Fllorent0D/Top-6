@@ -28,7 +28,8 @@ export class FirebaseAdmin {
     return admin.messaging().sendToTopic(topic, {
       notification: {
         title,
-        body
+        body,
+        sound: 'default'
       }
     });
   }
