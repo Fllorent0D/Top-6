@@ -26,6 +26,7 @@ import {
   TournamentRegister,
   TournamentRegisterResponse
 } from './tabt-models';
+import * as dateFormat from 'dateformat';
 
 export class TabTRequestor {
   public stub: string = 'https://resultats.aftt.be/api/?wsdl';
@@ -100,10 +101,10 @@ export class TabTRequestor {
   public getMatchesOfDivisionForToday(divisionId: number): Promise<TeamMatchEntry[]> {
     const matchRequest = new GetMatchesRequest();
     matchRequest.DivisionId = divisionId;
-    //matchRequest.YearDateFrom = dateFormat(new Date(), 'yyyy-mm-dd');
-    //matchRequest.YearDateTo = dateFormat(new Date().setDate(new Date().getDate() + 1), 'yyyy-mm-dd');
-    matchRequest.YearDateFrom = '2018-11-03';
-    matchRequest.YearDateTo = '2018-11-04';
+    matchRequest.YearDateFrom = dateFormat(new Date(), 'yyyy-mm-dd');
+    matchRequest.YearDateTo = dateFormat(new Date().setDate(new Date().getDate() + 1), 'yyyy-mm-dd');
+    //matchRequest.YearDateFrom = '2018-11-03';
+    //matchRequest.YearDateTo = '2018-11-04';
 
     return this.getMatches(matchRequest);
   }
