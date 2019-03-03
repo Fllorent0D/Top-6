@@ -142,6 +142,15 @@ export class PlayersStats {
       return;
     }
 
+    if (_.get(match, `Is${opposite}Forfeited`, false) === true){
+      for(const player of players){
+        player.VictoryCount = 0;
+        this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
+      }
+
+      return;
+    }
+
     for (const player of players) {
       if (!player.IsForfeited || oppositeIsFG) {
         const playerShouldBeForfeited = this.checkIfPlayerShouldBeForfeited(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
@@ -149,7 +158,7 @@ export class PlayersStats {
 
           let forfeit = 0;
           if (_.get(match, `Is${opposite}Forfeited`, false)) {
-            if(_.get(player, `VictoryCount`)) {
+            if (_.get(player, `VictoryCount`)) {
               forfeit = lghForfeitOpposite;
               const matchPlayedForfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
               if (matchPlayedForfeit !== 0 && matchPlayedForfeit > forfeit) {
@@ -175,6 +184,12 @@ export class PlayersStats {
             _.get(match, `Is${position}Forfeited`, false) === false
           ) {
             this.addError(`Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`);
+
+            return;
+          }
+
+          if (_.get(match, `Is${opposite}Withdrawn`, 'N') === '1') {
+            this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 4);
           }
         }
       }

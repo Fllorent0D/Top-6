@@ -30,7 +30,7 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
 
   if (currentDay === 0) {
     Promise.all([summary.start(), top.start()])
-      .then(([topTexts, summaryTexts]: [{ name: string; text: string }[], { name: string; text: string }[]]) => {
+      .then(([summaryTexts, topTexts]: [{ name: string; text: string }[], { name: string; text: string }[]]) => {
         const errors = top.playersStats.errorsDetected;
         const notices = top.playersStats.noticesDetected;
         //[{ 'email': 'fcardoen@gmail.com', 'name': 'Florent Cardoen' }]
