@@ -86,7 +86,7 @@ export class TopCalculator {
         text = `${text}\n\n--- Catégorie ${category.name}`;
 
         for (const player of category.players) {
-          text = `${text}\n${player.position} - ${player.uniqueIndex} ${Config.titleCase(player.name)} - ${player.clubName} ${player.clubIndex} - ${ player.points } points `;
+          text = `${text}\n${player.position} - ${player.uniqueIndex} ${Config.titleCase(player.name)} - ${player.clubName} ${player.clubIndex} - ${player.points} points `;
         }
       }
       rankingsTexts.push({
@@ -108,21 +108,19 @@ export class TopCalculator {
     const divisions: number[] = Config.getAllDivisions();
     const allMatches: TeamMatchEntry[] = [];
 
-    for (let i = 1; i < this.currentWeek; i = i + 1) {
-      for (const club of clubs) {
+    for (const club of clubs) {
 
-        // if (await this.tabt.shouldWait()) {
-        // await Config.timeout(10000);
-        // }
+      Config.logger.info(`Top : Downloading ${club}`);
+      let matches = await this.downloadMatchesOfClub(club);
+      if (matches && matches.length > 0) {
+        matches = matches.filter((match: TeamMatchEntry) =>
+          match.WeekName < this.currentWeek &&
+          divisions.indexOf(_.toNumber(match.DivisionId)) > -1);
 
-        Config.logger.info(`Top : Downloading ${club} weekname ${i}`);
-        let matches = await this.downloadMatchesOfClubForWeek(club, i);
-        if (matches && matches.length > 0) {
-          matches = matches.filter((match: TeamMatchEntry) => divisions.indexOf(_.toNumber(match.DivisionId)) > -1);
-          allMatches.push(...matches);
-        }
+        allMatches.push(...matches);
       }
     }
+
 
     return allMatches;
   }
@@ -131,9 +129,9 @@ export class TopCalculator {
   * Download all matches for a club for a specific date
   */
 
-  private async downloadMatchesOfClubForWeek(club: string, week: number): Promise<TeamMatchEntry[]> {
+  private async downloadMatchesOfClub(club: string): Promise<TeamMatchEntry[]> {
     const getMatchRequest = new GetMatchesRequest();
-    getMatchRequest.WeekName = week.toString();
+    //getMatchRequest.WeekName = week.toString();
     getMatchRequest.Club = club;
     getMatchRequest.WithDetails = true;
 

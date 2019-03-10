@@ -136,12 +136,13 @@ export class PlayersStats {
     const lghForfeitOpposite: number = _.filter(oppositePlayers, 'IsForfeited').length;
     const oppositeIsFG: boolean = _.get(match, `Is${opposite}Forfeited`, false) && _.get(match, `Is${opposite}Withdrawn`, 'N') === '1';
 
-    // position team is FG
+    // position team is FG => Just skip it
     if (_.get(match, `Is${position}Forfeited`, false) &&
       _.get(match, `Is${position}Withdrawn`, 'N') === '1') {
       return;
     }
 
+    // Opposite is forfeit => 5 points
     if (_.get(match, `Is${opposite}Forfeited`, false) === true){
       for(const player of players){
         player.VictoryCount = 0;
