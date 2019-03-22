@@ -2,11 +2,12 @@ import * as schedule from 'node-schedule';
 import { Config } from './config';
 
 import * as admin from 'firebase-admin';
+import MessagingTopicResponse = admin.messaging.MessagingTopicResponse;
+import { facebookPoster } from './firebase/facebook';
 import { FirebaseAdmin } from './firebase/firebase-admin';
 import { sendErrorMail, sendMail } from './helpers/mail';
 import { TopCalculator } from './top-6';
 import { WeekSummary } from './week-summary';
-import MessagingTopicResponse = admin.messaging.MessagingTopicResponse;
 
 const firebase: FirebaseAdmin = new FirebaseAdmin();
 const rule = new schedule.RecurrenceRule();
@@ -52,8 +53,9 @@ const job = schedule.scheduleJob(rule, (fireDate: Date) => {
   } else {
 
     top.start()
-      .then(() => {
+      .then((topTexts: { name: string; text: string }[]) => {
         firebase.saveTop(top.rankings, top.playersStats);
+        facebookPoster.postTopOnFacebook(topTexts.find((t: { name: string; text: string }) => t.name === 'Verviers').text);
 
         return FirebaseAdmin.sendNotification()
           .then((notification: MessagingTopicResponse) => {
