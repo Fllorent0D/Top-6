@@ -143,8 +143,8 @@ export class PlayersStats {
     }
 
     // Opposite is forfeit => 5 points
-    if (_.get(match, `Is${opposite}Forfeited`, false) === true){
-      for(const player of players){
+    if (_.get(match, `Is${opposite}Forfeited`, false) === true) {
+      for (const player of players) {
         player.VictoryCount = 0;
         this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
       }
