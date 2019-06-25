@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 
 import { Config, IConfigCategoryRanking } from '../config';
 import { ClubEntry, IndividualMatchResultEntry, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
+import { MatchResult } from './ranking.model';
 
 export interface IMatchItem {
   divisionIndex: number
@@ -92,25 +93,34 @@ export class PlayersStats {
       const weekName = match.WeekName;
       const homeClub = match.HomeClub;
       const awayClub = match.AwayClub;
+      const homeTeam = match.HomeTeam;
+      const awayTeam = match.AwayTeam;
+      const detailsCreated = match.MatchDetails.DetailsCreated;
 
-      if (((homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) || (awayClub === '-' && match.AwayTeam.indexOf('Bye') > -1))
-        && _.get(match, 'MatchDetails.DetailsCreated', false)) {
-        //If Home or Away is BYE, we have to count players stats and count 5 points
+      const isBye = (hClub: string, hTeam: string, aClub: string, aTeam: string, hasDetails: boolean): boolean => {
+        return ((hClub === '-' && hTeam.indexOf('Bye') > -1) ||
+          (aClub === '-' && aTeam.indexOf('Bye') > -1))
+          && hasDetails;
+      };
 
-        const players = (homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) ? _.get(match, 'MatchDetails.AwayPlayers.Players', []) : _.get(match, 'MatchDetails.HomePlayers.Players', []);
-        const club = (homeClub === '-' && match.HomeTeam.indexOf('Bye') > -1) ? awayClub : homeClub;
+
+      //If Home or Away is BYE, we have to count players stats and count 5 points
+      if (isBye(homeClub, homeTeam, awayClub, awayTeam, detailsCreated)) {
+        //Get players that are on the list
+        const players = (homeClub === '-' && homeTeam.indexOf('Bye') > -1) ? _.get(match, 'MatchDetails.AwayPlayers.Players', []) : _.get(match, 'MatchDetails.HomePlayers.Players', []);
+        const club = (homeClub === '-' && homeTeam.indexOf('Bye') > -1) ? awayClub : homeClub;
 
         for (const player of players) {
           this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
         }
 
-      } else if (match.MatchDetails.DetailsCreated) {
-        //Process HomePlayer(s)
-        if (Config.getAllClubs().indexOf(match.HomeClub) > -1) {
+      } else if (detailsCreated) {
+        //Process HomePlayer(s) if it's in the settings
+        if (Config.getAllClubs().indexOf(homeClub) > -1) {
           this.processPlayersFromMatch(match, 'Home');
         }
-        //Process AwayPlayer(s)
-        if (Config.getAllClubs().indexOf(match.AwayClub) > -1) {
+        //Process AwayPlayer(s) if it's in the settings
+        if (Config.getAllClubs().indexOf(awayClub) > -1) {
           this.processPlayersFromMatch(match, 'Away');
         }
       }
@@ -126,6 +136,30 @@ export class PlayersStats {
     });
   }
 
+  public overridePlayerHistory() {
+    //Loop on all the players to override
+    for (const playerIdToOverride of Object.keys(Config.overridePlayerVictoryHistory)) {
+      //Get matches to override and existing data
+      const newMatches: any[] = _.get(Config.overridePlayerVictoryHistory, playerIdToOverride, []);
+      const playerStat: IPlayerStats = _.get(this.playersStats, playerIdToOverride);
+
+      //Loop on all matches
+      for (const matchToOverride of newMatches) {
+        //Get existing match and merge it
+        const oldResult: IMatchItem = playerStat.victoryHistory.find((match: IMatchItem) => match.weekName === matchToOverride.weekName);
+        const newResult: IMatchItem = _.assign(oldResult, matchToOverride);
+
+        //Put the new result in place
+        const historyFiltered: IMatchItem[] = playerStat.victoryHistory.filter((match: IMatchItem) => match.weekName !== matchToOverride.weekName);
+        historyFiltered.push(newResult);
+
+        playerStat.victoryHistory = historyFiltered;
+      }
+      _.set(this.playersStats, playerIdToOverride, playerStat);
+    }
+  }
+
+
   private processPlayersFromMatch(match: TeamMatchEntry, position: string) {
     const players: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${position}Players.Players`);
     const divisionId: number = _.get(match, 'DivisionId');
@@ -136,15 +170,49 @@ export class PlayersStats {
     const lghForfeitOpposite: number = _.filter(oppositePlayers, 'IsForfeited').length;
     const oppositeIsFG: boolean = _.get(match, `Is${opposite}Forfeited`, false) && _.get(match, `Is${opposite}Withdrawn`, 'N') === '1';
 
+    //Check if we want to override some match because agility is too important
+    const toOverride: MatchResult = Config.overrideMatchResults.find((matchResult: MatchResult) => matchResult.matchId === match.MatchId);
+    if (toOverride) {
+      for (const player of players) {
+        player.VictoryCount = _.get(toOverride, `${position.toLowerCase()}VictoryCount`, 0);
+        this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, _.get(toOverride, `${position.toLowerCase()}Forfeit`, 0));
+      }
+
+      return;
+    }
+
     // position team is FG => Just skip it
     if (_.get(match, `Is${position}Forfeited`, false) &&
       _.get(match, `Is${position}Withdrawn`, 'N') === '1') {
       return;
     }
 
+    //Modified score 'Score Modifié" by the admin
+    if (match.Score.includes('sm')) {
+      const cleanedScore = match.Score.replace(' sm', '');
+      const scores = cleanedScore.split('-').map(Number);
+
+      const positionScore = (position === 'Home') ? scores[0] : scores[1];
+      const oppositeScore = (position === 'Home') ? scores[1] : scores[0];
+
+      //Check if the results of the position team is the best score possible
+      if (positionScore === (positionScore + oppositeScore) && oppositeScore === 0) {
+        for (const player of players) {
+          player.VictoryCount = 0;
+          this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
+        }
+
+        return;
+      } else {
+        this.addNotice(`Le match ${match.MatchId} a un score modifié, mais le score n'est pas le score maximum de défaite. Aucune décision prise pour le top6.`);
+      }
+
+    }
+
     // Opposite is forfeit => 5 points
     if (_.get(match, `Is${opposite}Forfeited`, false) === true) {
       for (const player of players) {
+        //Can be possible that a team has been burnt and remove so results are still set
         player.VictoryCount = 0;
         this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 5);
       }
@@ -273,5 +341,4 @@ export class PlayersStats {
       this.noticesDetected.push(notice);
     }
   }
-
 }

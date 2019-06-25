@@ -28,7 +28,7 @@ export class Week {
     19: { fromDate: new Date(2019, 2, 10), toDate: new Date(2019, 2, 16) },
     20: { fromDate: new Date(2019, 2, 17), toDate: new Date(2019, 2, 23) },
     21: { fromDate: new Date(2019, 2, 24), toDate: new Date(2019, 2, 30) },
-    22: { fromDate: new Date(2019, 2, 31), toDate: new Date(2019, 3, 6) },
+    22: { fromDate: new Date(2019, 2, 31), toDate: new Date(2019, 5, 6) },
   };
 
   public getDate(numJournee: number): {fromDate: Date, toDate: Date} {

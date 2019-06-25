@@ -4,7 +4,7 @@ import * as _ from 'lodash';
 
 import * as appRoot from 'app-root-path';
 import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config';
-import { Week } from '../helpers/week';
+//import { Week } from '../helpers/week';
 import { ClubEntry, GetClubsRequest, GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
 import { TabTRequestor } from '../TabTRequestor';
 import { IRankingEvolution, PlayersStats } from './players-stats';
@@ -19,26 +19,25 @@ export class Ranking {
 
 export class TopCalculator {
   /*
-
-  1 - Loop over weeks and download matchs
-  2 - Upsert document for each player with victory for the week n
-  3 - Process each player document to choose the good division
-  4 - Dispatch players in correct regions
-  5 - Dispatch players in correct categories
-
+    1 - Loop over weeks and download matchs
+    2 - Upsert document for each player with victory for the week n
+    3 - Process each player document to choose the good division
+    4 - Dispatch players in correct regions
+    5 - Dispatch players in correct categories
   */
+
   public readonly playersStats: PlayersStats;
   public readonly rankings: Ranking[];
 
   private tabt: TabTRequestor;
-  private readonly week: Week;
+  //private readonly week: Week;
   private readonly currentWeek: number;
 
   constructor() {
     this.tabt = new TabTRequestor();
 
-    this.week = new Week();
-    this.currentWeek = this.week.getCurrentJournee();
+    //this.week = new Week();
+    this.currentWeek = 23; //this.week.getCurrentJournee();
 
     this.playersStats = new PlayersStats();
     this.playersStats.currentWeek = this.currentWeek;
@@ -54,6 +53,7 @@ export class TopCalculator {
     const clubs = await this.downloadAllClubs();
 
     this.playersStats.processPlayersFromMatches(matches);
+    this.playersStats.overridePlayerHistory();
     this.playersStats.attributeDivisionToEachPlayers();
     this.playersStats.attributeClubNameToEachPlayers(clubs);
 
@@ -69,7 +69,7 @@ export class TopCalculator {
     });
     Config.logger.info('Top 6 script ended');
 
-    return this.printRankings(this.week.getCurrentJournee());
+    return this.printRankings(23);
   }
 
 
@@ -197,7 +197,7 @@ export class TopCalculator {
         const orderedCategories = ranking.categories.map((category: any) => {
           const rank = _.chain(category.players)
             .orderBy(['points', 'name'], ['desc', 'asc'])
-            .slice(0, 12)
+            .slice(0, 24)
             .map((val: any, index: number) => ({ ...val, position: index + 1 }))
             .value();
 

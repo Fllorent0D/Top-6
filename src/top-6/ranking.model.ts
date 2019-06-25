@@ -16,3 +16,11 @@ export class RankingPlayer {
   public name: string;
   public points: number;
 }
+
+export interface MatchResult{
+  matchId: string,
+  homeVictoryCount: number,
+  homeForfeit: number,
+  awayVictoryCount: number,
+  awayForfeit: number
+}
