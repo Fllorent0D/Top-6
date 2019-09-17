@@ -3,7 +3,7 @@ import {TeamMatchDetailsEntry} from "./TeamMatchDetailsEntry";
 export class TeamMatchEntry{
 	public DivisionName: string;
 	public MatchId: string;
-	public WeekName: number;
+	public WeekName: string;
 	public Date: string;
 	public Time: string;
 	public Venue: number;

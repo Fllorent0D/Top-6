@@ -4,7 +4,7 @@ import { Config, IConfigCategoryRanking } from '../config';
 import { ClubEntry, IndividualMatchResultEntry, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
 import { MatchResult } from './ranking.model';
 
-export interface IMatchItem {
+export interface MatchItem {
   divisionIndex: number
   divisionCategory: string,
   weekName: number,
@@ -14,26 +14,26 @@ export interface IMatchItem {
   matchId: string,
 }
 
-export interface IRankingEvolution {
+export interface RankingEvolution {
   weekName: number,
   rankingCategory: string,
   points: number
 }
 
-export interface IPlayerStats {
+export interface PlayerStats {
   uniqueIndex: number;
   name: string;
   clubIndex: string;
   clubName: string;
-  victoryHistory: IMatchItem[];
-  rankingEvolution: IRankingEvolution[];
+  victoryHistory: MatchItem[];
+  rankingEvolution: RankingEvolution[];
 
 }
 
 
 export class PlayersStats {
   public currentWeek: number;
-  public playersStats: { [index: string]: IPlayerStats };
+  public playersStats: { [index: string]: PlayerStats };
   public errorsDetected: string[];
   public noticesDetected: string[];
 
@@ -46,7 +46,7 @@ export class PlayersStats {
   public attributeDivisionToEachPlayers() {
     _.forEach(this.playersStats, (value: any) => {
       // Calculate in with category the player is categorized for each week
-      for (let i = 1; i < this.currentWeek; i = i + 1) {
+      for (let i = 1; i <= this.currentWeek; i = i + 1) {
 
         //We take the participation we are interested in
         const slicedParticipation = value.victoryHistory.filter((participation: any) => participation.weekName <= i);
@@ -90,7 +90,7 @@ export class PlayersStats {
   public processPlayersFromMatches(matches: TeamMatchEntry[]): void {
     for (const match of matches) {
       const divisionId = match.DivisionId;
-      const weekName = match.WeekName;
+      const weekName = _.parseInt(match.WeekName);
       const homeClub = match.HomeClub;
       const awayClub = match.AwayClub;
       const homeTeam = match.HomeTeam;
@@ -128,7 +128,7 @@ export class PlayersStats {
   }
 
   public attributeClubNameToEachPlayers(clubs: ClubEntry[]) {
-    _.forEach(this.playersStats, (value: IPlayerStats) => {
+    _.forEach(this.playersStats, (value: PlayerStats) => {
       this.playersStats[value.uniqueIndex] = {
         ...this.playersStats[value.uniqueIndex],
         clubName: _.get(_.find(clubs, { 'UniqueIndex': value.clubIndex }), 'Name', '')
@@ -141,29 +141,28 @@ export class PlayersStats {
     for (const playerIdToOverride of Object.keys(Config.overridePlayerVictoryHistory)) {
       //Get matches to override and existing data
       const newMatches: any[] = _.get(Config.overridePlayerVictoryHistory, playerIdToOverride, []);
-      const playerStat: IPlayerStats = _.get(this.playersStats, playerIdToOverride);
+      const playerStat: PlayerStats = _.get(this.playersStats, playerIdToOverride);
 
       //Loop on all matches
       for (const matchToOverride of newMatches) {
         //Get existing match and merge it
-        const oldResult: IMatchItem = playerStat.victoryHistory.find((match: IMatchItem) => match.weekName === matchToOverride.weekName);
-        const newResult: IMatchItem = _.assign(oldResult, matchToOverride);
+        const oldResult: MatchItem = _.get(playerStat, 'victoryHistory', [] as MatchItem[]).find((match: MatchItem) => match.weekName === matchToOverride.weekName);
+        const newResult: MatchItem = _.assign(oldResult, matchToOverride);
 
         //Put the new result in place
-        const historyFiltered: IMatchItem[] = playerStat.victoryHistory.filter((match: IMatchItem) => match.weekName !== matchToOverride.weekName);
+        const historyFiltered: MatchItem[] = _.get(playerStat, 'victoryHistory', [] as MatchItem[]).filter((match: MatchItem) => match.weekName !== matchToOverride.weekName);
         historyFiltered.push(newResult);
 
-        playerStat.victoryHistory = historyFiltered;
+        _.set(playerStat, 'victoryHistory', historyFiltered);
       }
       _.set(this.playersStats, playerIdToOverride, playerStat);
     }
   }
 
-
   private processPlayersFromMatch(match: TeamMatchEntry, position: string) {
     const players: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${position}Players.Players`);
     const divisionId: number = _.get(match, 'DivisionId');
-    const weekName: number = _.get(match, 'WeekName');
+    const weekName: number = _.parseInt(_.get(match, 'WeekName'));
     const club: string = _.get(match, `${position}Club`);
     const opposite: string = (position === 'Home') ? 'Away' : 'Home';
     const oppositePlayers: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${opposite}Players.Players`, []);
@@ -265,13 +264,12 @@ export class PlayersStats {
     }
   }
 
-
   private upsertPlayerStat(player: TeamMatchPlayerEntry, division: number, weekname: number, club: string, matchId: string, forfeit: number) {
     if (!_.get(player, 'UniqueIndex')) {
       return;
     }
 
-    const newVictoryHistory: IMatchItem = {
+    const newVictoryHistory: MatchItem = {
       'divisionIndex': division,
       'divisionCategory': Config.mapDivisionIdToCategory(_.toNumber(division)).name,
       'weekName': weekname,
@@ -293,7 +291,7 @@ export class PlayersStats {
       };
     }
 
-    const alreadyExistingResult: IMatchItem = _.find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
+    const alreadyExistingResult: MatchItem = _.find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
 
     if (!alreadyExistingResult) {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);

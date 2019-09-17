@@ -7,7 +7,7 @@ import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config'
 //import { Week } from '../helpers/week';
 import { ClubEntry, GetClubsRequest, GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
 import { TabTRequestor } from '../TabTRequestor';
-import { IRankingEvolution, PlayersStats } from './players-stats';
+import { RankingEvolution, PlayersStats } from './players-stats';
 import { RankingRegion } from './ranking.model';
 
 
@@ -37,7 +37,7 @@ export class TopCalculator {
     this.tabt = new TabTRequestor();
 
     //this.week = new Week();
-    this.currentWeek = 23; //this.week.getCurrentJournee();
+    this.currentWeek = 1; //this.week.getCurrentJournee();
 
     this.playersStats = new PlayersStats();
     this.playersStats.currentWeek = this.currentWeek;
@@ -53,7 +53,7 @@ export class TopCalculator {
     const clubs = await this.downloadAllClubs();
 
     this.playersStats.processPlayersFromMatches(matches);
-    this.playersStats.overridePlayerHistory();
+    //this.playersStats.overridePlayerHistory();
     this.playersStats.attributeDivisionToEachPlayers();
     this.playersStats.attributeClubNameToEachPlayers(clubs);
 
@@ -69,16 +69,16 @@ export class TopCalculator {
     });
     Config.logger.info('Top 6 script ended');
 
-    return this.printRankings(23);
+    return this.printRankings(this.currentWeek);
   }
 
 
   public printRankings(week: number): { name: string; text: string }[] {
-    const rankingCurrentWeek = _.find(this.rankings, { week: week - 1 });
+    const rankingCurrentWeek = _.find(this.rankings, { week: week });
     const rankingsTexts: { name: string; text: string }[] = [];
     for (const ranking of rankingCurrentWeek.rankings) {
       let text = '';
-      text = `${text}\nJournée ${week - 1}`;
+      text = `${text}\nJournée ${week}`;
       text = `${text}\n\n------------------------------------------`;
       text = `${text}\n---------- Classements ${ranking.name} ----------`;
       text = `${text}\n------------------------------------------`;
@@ -114,7 +114,7 @@ export class TopCalculator {
       let matches = await this.downloadMatchesOfClub(club);
       if (matches && matches.length > 0) {
         matches = matches.filter((match: TeamMatchEntry) =>
-          match.WeekName < this.currentWeek &&
+          _.parseInt(match.WeekName) <= this.currentWeek &&
           divisions.indexOf(_.toNumber(match.DivisionId)) > -1);
 
         allMatches.push(...matches);
@@ -134,13 +134,14 @@ export class TopCalculator {
     //getMatchRequest.WeekName = week.toString();
     getMatchRequest.Club = club;
     getMatchRequest.WithDetails = true;
+    getMatchRequest.Season = 20;
 
     return this.tabt.getMatches(getMatchRequest);
   }
 
 
   private createRankings() {
-    for (let i = 1; i < this.currentWeek; i = i + 1) {
+    for (let i = 1; i <= this.currentWeek; i = i + 1) {
 
       // Creates a new week to wrap the regions rankings
       const rankingsCurrentWeek: Ranking = {
@@ -167,7 +168,7 @@ export class TopCalculator {
       _.forEach(this.playersStats.playersStats, (player: any) => {
 
         // Check the current category the player is in for the week n°i
-        const currentPointsPlayer: IRankingEvolution = _.find(player.rankingEvolution, { 'weekName': i }) as IRankingEvolution;
+        const currentPointsPlayer: RankingEvolution = _.find(player.rankingEvolution, { 'weekName': i }) as RankingEvolution;
 
         if (currentPointsPlayer) {
           // Check in which region the club is in
