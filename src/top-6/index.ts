@@ -1,2 +1,2 @@
-export * from './players-stats';
+export * from './players-stats-aggregator';
 export * from './top-calculator';

@@ -1,74 +1,110 @@
-import * as schedule from 'node-schedule';
-import { Config } from './config';
-
+#!/usr/bin/env node
 import * as admin from 'firebase-admin';
 import MessagingTopicResponse = admin.messaging.MessagingTopicResponse;
-import { facebookPoster } from './firebase/facebook';
+import { Config } from './config';
+import { FacebookHelper } from './firebase/facebook';
 import { FirebaseAdmin } from './firebase/firebase-admin';
 import { sendErrorMail, sendMail } from './helpers/mail';
 import { TopCalculator } from './top-6';
+import { CategoryOutput, TaskOuput } from './top-6/ranking.model';
 import { WeekSummary } from './week-summary';
 
-const firebase: FirebaseAdmin = new FirebaseAdmin();
-const rule = new schedule.RecurrenceRule();
-rule.dayOfWeek = [0, 4];
-rule.hour = [21, 8];
-rule.minute = 0;
+// tslint:disable-next-line:no-require-imports no-var-requires
+const argv = require('yargs')
+  .alias('w', 'weekname')
+  .describe('w', 'Week to compute')
+  .number('w')
+  .alias('s', 'sunday')
+  .describe('s', 'Run sunday job')
+  .boolean('s')
+  .alias('t', 'top')
+  .describe('t', 'Run top job')
+  .boolean('t')
+  .alias('p', 'playerInTop')
+  .describe('p', 'Number of player in top results')
+  .number('p')
+  .alias('f', 'saveinfirebase')
+  .describe('f', 'Save result in firebase for BePing')
+  .boolean('f')
+  .alias('fb', 'postonfacebook')
+  .describe('fb', 'Post result of Top on Facebook')
+  .boolean('fb')
+  .alias('m', 'emails')
+  .describe('m', 'Emails addresses to send results')
+  .array('m')
+  .help()
+  .epilogue('for more information, ask Florent Cardoen')
+  .argv;
 
-const job = schedule.scheduleJob(rule, (fireDate: Date) => {
-
-  const currentDay: number = new Date().getDay();
-  const currentHour: number = new Date().getHours();
-
-  if ((currentDay === 0 && currentHour === 8) || (currentDay === 4 && currentHour === 21)) {
-    return;
-  }
-
-  Config.logger.info(`Job starting at supposed to run at ${fireDate}, but actually ran at ${new Date()}`);
-
-  const top: TopCalculator = new TopCalculator();
+const sundayJob = async (weekName: number, playerInTop: number, emails: string[] = Config.mailConfig.to) => {
+  const top: TopCalculator = new TopCalculator(weekName, playerInTop, true);
   const summary: WeekSummary = new WeekSummary();
 
-  if (currentDay === 0) {
-    Promise.all([summary.start(), top.start()])
-      .then(([summaryTexts, topTexts]: [{ name: string; text: string }[], { name: string; text: string }[]]) => {
-        const errors = top.playersStats.errorsDetected;
-        const notices = top.playersStats.noticesDetected;
-        //[{ 'email': 'fcardoen@gmail.com', 'name': 'Florent Cardoen' }]
+  try {
+    const [summaryTexts, topTexts]: TaskOuput[] = await Promise.all([summary.start(), top.start()]);
 
-        return sendMail(summaryTexts, topTexts, errors, notices)
-          .then(([response, body]: [any, any]) => {
-            Config.logger.info(`Email send!`);
-            Config.logger.info(`Response: ${body}`);
-            Config.logger.info(`Status code: ${response.statusCode}`);
-            Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
+    const errors = top.playersStats.errorsDetected;
+    const notices = top.playersStats.noticesDetected;
 
-          });
-      })
-      .catch((err: any) => {
-        Config.logger.error(`Email sending error : ${err}`);
+    const sentMessageInfo = await sendMail(summaryTexts, topTexts, errors, notices, emails);
+    Config.logger.info(`Email send!`);
+    Config.logger.info(`Response: ${JSON.stringify(sentMessageInfo)}`);
 
-        return sendErrorMail(err);
-      });
-  } else {
-
-    top.start()
-      .then((topTexts: { name: string; text: string }[]) => {
-        firebase.saveTop(top.rankings, top.playersStats);
-        facebookPoster.postTopOnFacebook(topTexts.find((t: { name: string; text: string }) => t.name === 'Verviers').text);
-
-        return FirebaseAdmin.sendNotification()
-          .then((notification: MessagingTopicResponse) => {
-            Config.logger.info(`Notification sent ${notification}`);
-            Config.logger.info(`Job finished. Next invocation at ${job.nextInvocation()}`);
-          });
-      })
-      .catch((err: any) => {
-        Config.logger.error(`Email sending error : ${err}`);
-
-        return sendErrorMail(err);
-      });
+  } catch (err) {
+    Config.logger.error(` Sending error because of error : ${err}`);
+    await sendErrorMail(err);
   }
-});
+};
 
-Config.logger.info(`Job initialized. First invocation at ${job.nextInvocation()}`);
+const processTop = async (weekName: number, playerInTop: number, saveInFirebase: boolean, postOnFacebook: boolean) => {
+  const top: TopCalculator = new TopCalculator(weekName, playerInTop, false);
+  const firebase: FirebaseAdmin = new FirebaseAdmin();
+
+  try {
+    const topTexts: TaskOuput = await top.start();
+    Config.logger.info(topTexts);
+
+    topTexts.map((categoryOuput: CategoryOutput) => {
+      console.debug(`## ${categoryOuput.name}`);
+      console.debug(categoryOuput.text);
+    });
+
+    if (saveInFirebase) {
+      firebase.saveTop(top.rankings, top.playersStats);
+      const notification: MessagingTopicResponse = await FirebaseAdmin.sendNotification();
+      Config.logger.info(`Notification sent ${notification}`);
+    }
+
+    if (postOnFacebook) {
+      FacebookHelper.PostTopOnFacebook(topTexts.find((t: { name: string; text: string }) => t.name === 'Verviers').text);
+    }
+  } catch (e) {
+    Config.logger.error(`Email sending error : ${e}`);
+    await sendErrorMail(e);
+  }
+};
+
+
+const start = async () => {
+  const currentDay: number = new Date().getDay();
+  const weekName = argv.weekname || 5;
+
+  if ((currentDay < 2 && !argv.top) || argv.sunday) {
+    const emails = argv.emails || Config.mailConfig.to;
+    const playerInTop = argv.playerintop || 24;
+
+    await sundayJob(weekName, playerInTop, emails);
+  } else {
+    const saveInFirebase = currentDay >= 4 || argv.saveinfirebase;
+    const postOnFacebook = currentDay === 4 || argv.postonfacebook;
+
+    const playerInTop = argv.playerintop || 12;
+
+    await processTop(weekName, playerInTop, saveInFirebase, postOnFacebook);
+  }
+};
+
+start()
+  .then(() => Config.logger.info('Program successfully exited'))
+  .catch(() => Config.logger.error('Something seems to be wrong'));
+

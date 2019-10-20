@@ -1,5 +1,5 @@
-import {TeamMatchPlayerList} from "./TeamMatchPlayerList";
 import {IndividualMatchResultEntry} from "./IndividualMatchResultEntry";
+import {TeamMatchPlayerList} from "./TeamMatchPlayerList";
 
 export class TeamMatchDetailsEntry{
 	public DetailsCreated: boolean;

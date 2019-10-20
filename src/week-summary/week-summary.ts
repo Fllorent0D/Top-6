@@ -1,5 +1,5 @@
 import * as dateFormat from 'dateformat';
-import * as _ from 'lodash';
+import { chain, concat, get, includes, reduce, flatten } from 'lodash';
 
 import { Config } from '../config';
 
@@ -52,22 +52,13 @@ export class WeekSummary {
   }
 
   private async downloadAllMatches(clubs: string[]): Promise<TeamMatchEntry[]> {
-    const matches: TeamMatchEntry[] = [];
-    for (const club of clubs) {
+    const getMatchesPromise: Promise<TeamMatchEntry[]>[] = clubs.map((club: string) => this.downloadMatchesOfClubForWeek(club));
+    const allMatchesArray: TeamMatchEntry[][] = await Promise.all(getMatchesPromise);
 
-      Config.logger.info(`Summary: Downloading this week of ${club}`);
-      const matchesOfClub = await this.downloadMatchesOfClubForWeek(club);
-
-      if (matchesOfClub && matchesOfClub.length > 0) {
-        matches.push(...matchesOfClub);
-      }
-    }
-
-    return matches;
+    return flatten(allMatchesArray);
   }
 
-  // @ts-ignore
-  private groupMatches = (matches: TeamMatchEntry[]): IGroupedMatches[] => _.chain(matches)
+  private groupMatches = (matches: TeamMatchEntry[]): IGroupedMatches[] => chain(matches)
     .uniqBy('MatchId')
     .filter((match: TeamMatchEntry) => !(match.HomeTeam.includes('Bye') || match.AwayTeam.includes('Bye')))
     .groupBy('DivisionName')
@@ -98,24 +89,23 @@ export class WeekSummary {
 
   private printMatch(match: TeamMatchEntry, clubs: string[]): string {
     const teams = `${match.HomeTeam} - ${match.AwayTeam}`;
-    const score = _.get(match, 'Score', ' - ');
+    const score = get(match, 'Score', ' - ');
 
     let players = '';
-    if (_.get(match, 'MatchDetails.DetailsCreated', false)) {
+    if (get(match, 'MatchDetails.DetailsCreated', false)) {
       const playersArray = [];
 
       const reduceNames = (acc: string[], player: TeamMatchPlayerEntry): string[] => {
+        const playerString: string = `${player.FirstName.charAt(0)}. ${Config.titleCase(player.LastName)} ${get(player, 'VictoryCount', 'WO')}`;
 
-        const playerString: string = `${player.FirstName.charAt(0)}. ${Config.titleCase(player.LastName)} ${_.get(player, 'VictoryCount', 'WO')}`;
-
-        return _.concat(acc, playerString);
+        return concat(acc, playerString);
       };
-      if (_.includes(clubs, match.HomeClub)) {
-        playersArray.push(_.reduce(match.MatchDetails.HomePlayers.Players, reduceNames, []).join(', '));
+      if (includes(clubs, match.HomeClub)) {
+        playersArray.push(reduce(match.MatchDetails.HomePlayers.Players, reduceNames, []).join(', '));
       }
 
-      if (_.includes(clubs, match.AwayClub)) {
-        playersArray.push(_.reduce(match.MatchDetails.AwayPlayers.Players, reduceNames, []).join(', '));
+      if (includes(clubs, match.AwayClub)) {
+        playersArray.push(reduce(match.MatchDetails.AwayPlayers.Players, reduceNames, []).join(', '));
       }
 
       players = playersArray.join(', ');
@@ -127,6 +117,8 @@ export class WeekSummary {
   }
 
   private async downloadMatchesOfClubForWeek(club: string): Promise<TeamMatchEntry[]> {
+    Config.logger.info(`Summary: Downloading this week of ${club}`);
+
     const getMatchRequest = new GetMatchesRequest();
     getMatchRequest.Club = club;
     getMatchRequest.WithDetails = true;

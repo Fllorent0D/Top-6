@@ -1,14 +1,14 @@
 import * as dateFormat from 'dateformat';
 import * as fs from 'fs';
-import * as _ from 'lodash';
+import { chain, find, findIndex, flatten, forEach, toNumber } from 'lodash';
 
 import * as appRoot from 'app-root-path';
 import { Config, IConfigCategoryRanking, IConfigRegionRanking } from '../config';
 //import { Week } from '../helpers/week';
 import { ClubEntry, GetClubsRequest, GetMatchesRequest, TeamMatchEntry } from '../tabt-models';
 import { TabTRequestor } from '../TabTRequestor';
-import { RankingEvolution, PlayersStats } from './players-stats';
-import { RankingRegion } from './ranking.model';
+import { PlayersStatsAggregator, RankingEvolution } from './players-stats-aggregator';
+import { RankingRegion, TaskOuput } from './ranking.model';
 
 
 export class Ranking {
@@ -26,34 +26,39 @@ export class TopCalculator {
     5 - Dispatch players in correct categories
   */
 
-  public readonly playersStats: PlayersStats;
+  public readonly playersStats: PlayersStatsAggregator;
   public readonly rankings: Ranking[];
 
   private tabt: TabTRequestor;
   //private readonly week: Week;
   private readonly currentWeek: number;
+  private readonly playerInTop: number;
+  private readonly detailed: boolean;
 
-  constructor() {
+  constructor(weekName: number, playerInTop: number, detailed: boolean) {
     this.tabt = new TabTRequestor();
-
     //this.week = new Week();
-    this.currentWeek = 1; //this.week.getCurrentJournee();
+    //this.currentWeek = this.week.getCurrentJournee();
 
-    this.playersStats = new PlayersStats();
+    this.currentWeek = weekName;
+    this.playerInTop = playerInTop;
+    this.detailed = detailed;
+
+    this.playersStats = new PlayersStatsAggregator();
     this.playersStats.currentWeek = this.currentWeek;
 
     this.rankings = [];
   }
 
 
-  public async start(): Promise<{ name: string; text: string }[]> {
-    Config.logger.info('Top 6 script started');
+  public async start(): Promise<TaskOuput> {
+    Config.logger.info(`Top 6 script started - Current week ${this.currentWeek}`);
 
     const matches = await this.downloadAllMatches();
     const clubs = await this.downloadAllClubs();
 
     this.playersStats.processPlayersFromMatches(matches);
-    //this.playersStats.overridePlayerHistory();
+    this.playersStats.overridePlayerHistory();
     this.playersStats.attributeDivisionToEachPlayers();
     this.playersStats.attributeClubNameToEachPlayers(clubs);
 
@@ -69,26 +74,36 @@ export class TopCalculator {
     });
     Config.logger.info('Top 6 script ended');
 
-    return this.printRankings(this.currentWeek);
+    return this.printRankings();
   }
 
 
-  public printRankings(week: number): { name: string; text: string }[] {
-    const rankingCurrentWeek = _.find(this.rankings, { week: week });
-    const rankingsTexts: { name: string; text: string }[] = [];
+  public printRankings(): TaskOuput {
+    const rankingCurrentWeek = find(this.rankings, { week: this.currentWeek });
+    const rankingsTexts: TaskOuput = [];
     for (const ranking of rankingCurrentWeek.rankings) {
-      let text = '';
-      text = `${text}\nJournée ${week}`;
-      text = `${text}\n\n------------------------------------------`;
-      text = `${text}\n---------- Classements ${ranking.name} ----------`;
-      text = `${text}\n------------------------------------------`;
+      let text = `Classement de la journée n°${this.currentWeek}`;
+
+      if (this.detailed) {
+        text = `${text}\n# Classement ${ranking.name}`;
+      }
+
       for (const category of ranking.categories) {
-        text = `${text}\n\n--- Catégorie ${category.name}`;
+        text = `${text}\n\n## Catégorie ${category.name}`;
 
         for (const player of category.players) {
-          text = `${text}\n${player.position} - ${player.uniqueIndex} ${Config.titleCase(player.name)} - ${player.clubName} ${player.clubIndex} - ${player.points} points `;
+          if (this.detailed) {
+            text = `${text}\n${player.position}. ${player.uniqueIndex} ${Config.titleCase(player.name)} - ${player.clubName} ${player.clubIndex} - ${player.points} points `;
+          } else {
+            text = `${text}\n${player.position}. ${Config.titleCase(player.name)} - ${player.clubName} - ${player.points} points `;
+          }
         }
       }
+
+      if (!this.detailed) {
+        text = `${text}\n\n Ce classement est calculé par BePing - L'appli de Ping belge`;
+      }
+
       rankingsTexts.push({
         name: ranking.name,
         text: text
@@ -98,31 +113,20 @@ export class TopCalculator {
     text = `${text}\n\nErreurs détectées: `;
     for (const error of this.playersStats.errorsDetected) {
       text = `${text}\n${error}`;
-    }
-*/
+    }*/
+
     return rankingsTexts;
   }
 
   private async downloadAllMatches(): Promise<TeamMatchEntry[]> {
     const clubs: string[] = Config.getAllClubs();
     const divisions: number[] = Config.getAllDivisions();
-    const allMatches: TeamMatchEntry[] = [];
+    //const allMatches: TeamMatchEntry[] = [];
+    const getMatchesPromise: Promise<TeamMatchEntry[]>[] = clubs.map((club: string) => this.downloadMatchesOfClub(club));
+    const allMatchesArray: TeamMatchEntry[][] = await Promise.all(getMatchesPromise);
+    const allMatches: TeamMatchEntry[] = flatten(allMatchesArray);
 
-    for (const club of clubs) {
-
-      Config.logger.info(`Top : Downloading ${club}`);
-      let matches = await this.downloadMatchesOfClub(club);
-      if (matches && matches.length > 0) {
-        matches = matches.filter((match: TeamMatchEntry) =>
-          _.parseInt(match.WeekName) <= this.currentWeek &&
-          divisions.indexOf(_.toNumber(match.DivisionId)) > -1);
-
-        allMatches.push(...matches);
-      }
-    }
-
-
-    return allMatches;
+    return allMatches.filter((match: TeamMatchEntry) => parseInt(match.WeekName, 10) <= this.currentWeek && divisions.indexOf(toNumber(match.DivisionId)) > -1);
   }
 
   /*
@@ -130,6 +134,8 @@ export class TopCalculator {
   */
 
   private async downloadMatchesOfClub(club: string): Promise<TeamMatchEntry[]> {
+    Config.logger.info(`Top : Downloading ${club}`);
+
     const getMatchRequest = new GetMatchesRequest();
     //getMatchRequest.WeekName = week.toString();
     getMatchRequest.Club = club;
@@ -148,13 +154,13 @@ export class TopCalculator {
         week: i,
         rankings: []
       };
-      _.forEach(Config.regions, (value: IConfigRegionRanking) => {
+      forEach(Config.regions, (value: IConfigRegionRanking) => {
         // Creates a new region for this week
         const ranking = {
           name: value.name,
           categories: []
         };
-        _.forEach(Config.categories, (category: IConfigCategoryRanking) => {
+        forEach(Config.categories, (category: IConfigCategoryRanking) => {
           // Creates each category for this region of this week
           ranking.categories.push({
             name: category.name,
@@ -165,10 +171,10 @@ export class TopCalculator {
       });
 
       //Loop on players on include them in the correct ranking
-      _.forEach(this.playersStats.playersStats, (player: any) => {
+      forEach(this.playersStats.playersStats, (player: any) => {
 
         // Check the current category the player is in for the week n°i
-        const currentPointsPlayer: RankingEvolution = _.find(player.rankingEvolution, { 'weekName': i }) as RankingEvolution;
+        const currentPointsPlayer: RankingEvolution = find(player.rankingEvolution, { 'weekName': i }) as RankingEvolution;
 
         if (currentPointsPlayer) {
           // Check in which region the club is in
@@ -176,10 +182,10 @@ export class TopCalculator {
 
           if (rankingRegion) {
             // Find the index of the correct region for the club
-            const rankingRegionIndex = _.findIndex(rankingsCurrentWeek.rankings, { 'name': rankingRegion.name });
+            const rankingRegionIndex = findIndex(rankingsCurrentWeek.rankings, { 'name': rankingRegion.name });
 
             // Find the index of the correct category
-            const categoryIndex = _.findIndex(rankingsCurrentWeek.rankings[rankingRegionIndex].categories, { 'name': currentPointsPlayer.rankingCategory });
+            const categoryIndex = findIndex(rankingsCurrentWeek.rankings[rankingRegionIndex].categories, { 'name': currentPointsPlayer.rankingCategory });
 
             // Push the player to the correct category and region
             rankingsCurrentWeek.rankings[rankingRegionIndex].categories[categoryIndex].players.push({
@@ -196,9 +202,9 @@ export class TopCalculator {
       // Loop on each regions categories to order and take 10 bests
       rankingsCurrentWeek.rankings = rankingsCurrentWeek.rankings.map((ranking: any) => {
         const orderedCategories = ranking.categories.map((category: any) => {
-          const rank = _.chain(category.players)
+          const rank = chain(category.players)
             .orderBy(['points', 'name'], ['desc', 'asc'])
-            .slice(0, 24)
+            .slice(0, this.playerInTop)
             .map((val: any, index: number) => ({ ...val, position: index + 1 }))
             .value();
 

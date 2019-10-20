@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import * as fetch from 'node-fetch';
 
+import * as dateFormat from 'dateformat';
 import * as randomIpv4 from 'random-ipv4';
 import { Client, createClientAsync } from 'soap';
 import { Config } from './config';
@@ -26,7 +27,6 @@ import {
   TournamentRegister,
   TournamentRegisterResponse
 } from './tabt-models';
-import * as dateFormat from 'dateformat';
 
 export class TabTRequestor {
   public stub: string = 'https://resultats.aftt.be/api/?wsdl';

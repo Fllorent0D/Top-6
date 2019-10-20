@@ -28,9 +28,9 @@ export module Config {
       name: 'Verviers',
       clubs:
         ['L095', 'L323', 'L264', 'L002', 'L318', 'L320', 'L337', 'L348',
-          'L313', 'L328', 'L125', 'L389', 'L382', 'L179', 'L360', 'L399', 'L066', 'L368',
-          'L003', 'L184', 'L252', 'L272', 'L274', 'L284', 'L296', 'L326',
-          'L329', 'L344', 'L349', 'L357', 'L378']
+          'L313', 'L328', 'L125', 'L389', 'L382', 'L179', 'L360', 'L399',
+          'L066', 'L368', 'L003', 'L184', 'L252', 'L272', 'L274', 'L284',
+          'L296', 'L326', 'L329', 'L344', 'L349', 'L357', 'L378']
     }
     /*
     {
@@ -42,7 +42,7 @@ export module Config {
     {
       'id': 0,
       'name': 'NAT/WB',
-      'divisions': [4256, 4141, 4142, 4143, 4144, 4145, 4146, 4235, 4236, 4237, 4238, 4239]
+      'divisions': [4141, 4142, 4143, 4144, 4145, 4146, 4235, 4236, 4237, 4238, 4239]
     },
     {
       'id': 1,
@@ -62,7 +62,7 @@ export module Config {
     {
       'id': 4,
       'name': 'Provincial 4',
-      'divisions': [4495, 4521, 4496, 4497, 4489, 4499, 4500]
+      'divisions': [4495, 4521, 4496, 4497, 4489, 4498, 4499, 4500]
     },
     {
       'id': 5,
@@ -78,7 +78,7 @@ export module Config {
 
   export const overrideMatchResults: MatchResult[] = [
     {
-      matchId: "123",
+      matchId: '123',
       homeVictoryCount: 3,
       homeForfeit: 0,
       awayVictoryCount: 3,
@@ -125,7 +125,7 @@ export module Config {
   };
 
   export const dispatchInRankingForClub = (club: string): IConfigRegionRanking => {
-    return Config.regions.find((ranking: IConfigRegionRanking) => {
+    return regions.find((ranking: IConfigRegionRanking) => {
       return _.includes(ranking.clubs, club);
     });
   };
@@ -146,7 +146,7 @@ export module Config {
       colorize: false
     },
     console: {
-      level: 'debug',
+      level: 'info',
       handleExceptions: true,
       json: false,
       colorize: true
@@ -181,18 +181,9 @@ export module Config {
 
   export const mailConfig = {
     to: [
-      {
-        'email': 'f.cardoen@me.com',
-        'name': 'Florent Cardoen'
-      },
-      {
-        'email': 'jacpirard@hotmail.com',
-        'name': 'Jacques Pirard'
-      },
-      {
-        'email': 'thomasbastin5@gmail.com',
-        'name': 'Thomas Bastin'
-      }
+      'f.cardoen@me.com',
+      'jacpirard@hotmail.com',
+      'thomasbastin5@gmail.com'
     ],
     subject: 'Top 6 & Techniques Verviers & Huy-Waremme',
     message: `Le nouveau classement TOP 6 de Verviers & Huy-Waremme vient d\'être calculé automatiquement par le serveur de BePing.<br/>

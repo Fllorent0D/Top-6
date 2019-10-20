@@ -24,3 +24,10 @@ export interface MatchResult{
   awayVictoryCount: number,
   awayForfeit: number
 }
+
+export interface CategoryOutput {
+  name: string;
+  text: string;
+}
+
+export type TaskOuput = CategoryOutput[];

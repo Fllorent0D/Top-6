@@ -1,5 +1,4 @@
-import * as _ from 'lodash';
-
+import { assign, chain, filter, find, forEach, get, has, includes, reduce, set, toNumber } from 'lodash';
 import { Config, IConfigCategoryRanking } from '../config';
 import { ClubEntry, IndividualMatchResultEntry, TeamMatchEntry, TeamMatchPlayerEntry } from '../tabt-models';
 import { MatchResult } from './ranking.model';
@@ -30,8 +29,7 @@ export interface PlayerStats {
 
 }
 
-
-export class PlayersStats {
+export class PlayersStatsAggregator {
   public currentWeek: number;
   public playersStats: { [index: string]: PlayerStats };
   public errorsDetected: string[];
@@ -44,7 +42,7 @@ export class PlayersStats {
   }
 
   public attributeDivisionToEachPlayers() {
-    _.forEach(this.playersStats, (value: any) => {
+    forEach(this.playersStats, (value: any) => {
       // Calculate in with category the player is categorized for each week
       for (let i = 1; i <= this.currentWeek; i = i + 1) {
 
@@ -53,7 +51,7 @@ export class PlayersStats {
 
         if (slicedParticipation.length > 0) {
           // Grouped by division category and
-          const result = _.chain(slicedParticipation)
+          const result = chain(slicedParticipation)
             .groupBy('divisionCategory')
             .values()
             .map((group: any) => ({ 'divisionCategory': group[0].divisionCategory, 'played': group.length }))
@@ -62,7 +60,7 @@ export class PlayersStats {
             .value();
 
           // Find the config category from the main category
-          const mainRanking: IConfigCategoryRanking = _.find(Config.categories, { 'name': result.divisionCategory }) as IConfigCategoryRanking;
+          const mainRanking: IConfigCategoryRanking = find(Config.categories, { 'name': result.divisionCategory }) as IConfigCategoryRanking;
 
           // filter participation from the main category
           const matchesToCount = slicedParticipation.filter((participation: any) => {
@@ -72,7 +70,7 @@ export class PlayersStats {
           });
 
           // Count points
-          const points: number = _.reduce(matchesToCount, (acc: number, current: any) => {
+          const points: number = reduce(matchesToCount, (acc: number, current: any) => {
             return acc + current.pointsWon;
           }, 0);
 
@@ -90,7 +88,7 @@ export class PlayersStats {
   public processPlayersFromMatches(matches: TeamMatchEntry[]): void {
     for (const match of matches) {
       const divisionId = match.DivisionId;
-      const weekName = _.parseInt(match.WeekName);
+      const weekName = toNumber(match.WeekName);
       const homeClub = match.HomeClub;
       const awayClub = match.AwayClub;
       const homeTeam = match.HomeTeam;
@@ -107,7 +105,7 @@ export class PlayersStats {
       //If Home or Away is BYE, we have to count players stats and count 5 points
       if (isBye(homeClub, homeTeam, awayClub, awayTeam, detailsCreated)) {
         //Get players that are on the list
-        const players = (homeClub === '-' && homeTeam.indexOf('Bye') > -1) ? _.get(match, 'MatchDetails.AwayPlayers.Players', []) : _.get(match, 'MatchDetails.HomePlayers.Players', []);
+        const players = (homeClub === '-' && homeTeam.indexOf('Bye') > -1) ? get(match, 'MatchDetails.AwayPlayers.Players', []) : get(match, 'MatchDetails.HomePlayers.Players', []);
         const club = (homeClub === '-' && homeTeam.indexOf('Bye') > -1) ? awayClub : homeClub;
 
         for (const player of players) {
@@ -128,10 +126,10 @@ export class PlayersStats {
   }
 
   public attributeClubNameToEachPlayers(clubs: ClubEntry[]) {
-    _.forEach(this.playersStats, (value: PlayerStats) => {
+    forEach(this.playersStats, (value: PlayerStats) => {
       this.playersStats[value.uniqueIndex] = {
         ...this.playersStats[value.uniqueIndex],
-        clubName: _.get(_.find(clubs, { 'UniqueIndex': value.clubIndex }), 'Name', '')
+        clubName: get(find(clubs, { 'UniqueIndex': value.clubIndex }), 'Name', '')
       };
     });
   }
@@ -140,49 +138,58 @@ export class PlayersStats {
     //Loop on all the players to override
     for (const playerIdToOverride of Object.keys(Config.overridePlayerVictoryHistory)) {
       //Get matches to override and existing data
-      const newMatches: any[] = _.get(Config.overridePlayerVictoryHistory, playerIdToOverride, []);
-      const playerStat: PlayerStats = _.get(this.playersStats, playerIdToOverride);
+      const newMatches: any[] = get(Config.overridePlayerVictoryHistory, playerIdToOverride, []);
+      const playerStat: PlayerStats = get(this.playersStats, playerIdToOverride);
+      if(!playerStat){
+        Config.logger.error('Trying to override player that hasn\'t played yet');
+        continue;
+      }
 
       //Loop on all matches
       for (const matchToOverride of newMatches) {
         //Get existing match and merge it
-        const oldResult: MatchItem = _.get(playerStat, 'victoryHistory', [] as MatchItem[]).find((match: MatchItem) => match.weekName === matchToOverride.weekName);
-        const newResult: MatchItem = _.assign(oldResult, matchToOverride);
+        const oldResult: MatchItem = get(playerStat, 'victoryHistory', [] as MatchItem[]).find((match: MatchItem) => match.weekName === matchToOverride.weekName);
+        if(!playerStat){
+          Config.logger.error(`Trying to override match of player ${playerIdToOverride} weekname ${matchToOverride.weekName} but this player hasn't played on that week`)
+        }
+
+        const newResult: MatchItem = assign(oldResult, matchToOverride);
 
         //Put the new result in place
-        const historyFiltered: MatchItem[] = _.get(playerStat, 'victoryHistory', [] as MatchItem[]).filter((match: MatchItem) => match.weekName !== matchToOverride.weekName);
+        const historyFiltered: MatchItem[] = get(playerStat, 'victoryHistory', [] as MatchItem[]).filter((match: MatchItem) => match.weekName !== matchToOverride.weekName);
         historyFiltered.push(newResult);
 
-        _.set(playerStat, 'victoryHistory', historyFiltered);
+        set(playerStat, 'victoryHistory', historyFiltered);
       }
-      _.set(this.playersStats, playerIdToOverride, playerStat);
+      set(this.playersStats, playerIdToOverride, playerStat);
     }
   }
 
+  // tslint:disable-next-line:cyclomatic-complexity
   private processPlayersFromMatch(match: TeamMatchEntry, position: string) {
-    const players: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${position}Players.Players`);
-    const divisionId: number = _.get(match, 'DivisionId');
-    const weekName: number = _.parseInt(_.get(match, 'WeekName'));
-    const club: string = _.get(match, `${position}Club`);
+    const players: TeamMatchPlayerEntry[] = get(match, `MatchDetails.${position}Players.Players`);
+    const divisionId: number = get(match, 'DivisionId');
+    const weekName: number = toNumber(get(match, 'WeekName'));
+    const club: string = get(match, `${position}Club`);
     const opposite: string = (position === 'Home') ? 'Away' : 'Home';
-    const oppositePlayers: TeamMatchPlayerEntry[] = _.get(match, `MatchDetails.${opposite}Players.Players`, []);
-    const lghForfeitOpposite: number = _.filter(oppositePlayers, 'IsForfeited').length;
-    const oppositeIsFG: boolean = _.get(match, `Is${opposite}Forfeited`, false) && _.get(match, `Is${opposite}Withdrawn`, 'N') === '1';
+    const oppositePlayers: TeamMatchPlayerEntry[] = get(match, `MatchDetails.${opposite}Players.Players`, []);
+    const lghForfeitOpposite: number = filter(oppositePlayers, 'IsForfeited').length;
+    const oppositeIsFG: boolean = get(match, `Is${opposite}Forfeited`, false) && get(match, `Is${opposite}Withdrawn`, 'N') === '1';
 
     //Check if we want to override some match because agility is too important
     const toOverride: MatchResult = Config.overrideMatchResults.find((matchResult: MatchResult) => matchResult.matchId === match.MatchId);
     if (toOverride) {
       for (const player of players) {
-        player.VictoryCount = _.get(toOverride, `${position.toLowerCase()}VictoryCount`, 0);
-        this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, _.get(toOverride, `${position.toLowerCase()}Forfeit`, 0));
+        player.VictoryCount = get(toOverride, `${position.toLowerCase()}VictoryCount`, 0);
+        this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, get(toOverride, `${position.toLowerCase()}Forfeit`, 0));
       }
 
       return;
     }
 
     // position team is FG => Just skip it
-    if (_.get(match, `Is${position}Forfeited`, false) &&
-      _.get(match, `Is${position}Withdrawn`, 'N') === '1') {
+    if (get(match, `Is${position}Forfeited`, false) &&
+      get(match, `Is${position}Withdrawn`, 'N') === '1') {
       return;
     }
 
@@ -190,7 +197,6 @@ export class PlayersStats {
     if (match.Score.includes('sm')) {
       const cleanedScore = match.Score.replace(' sm', '');
       const scores = cleanedScore.split('-').map(Number);
-
       const positionScore = (position === 'Home') ? scores[0] : scores[1];
       const oppositeScore = (position === 'Home') ? scores[1] : scores[0];
 
@@ -205,11 +211,10 @@ export class PlayersStats {
       } else {
         this.addNotice(`Le match ${match.MatchId} a un score modifié, mais le score n'est pas le score maximum de défaite. Aucune décision prise pour le top6.`);
       }
-
     }
 
     // Opposite is forfeit => 5 points
-    if (_.get(match, `Is${opposite}Forfeited`, false) === true) {
+    if (get(match, `Is${opposite}Forfeited`, false) === true) {
       for (const player of players) {
         //Can be possible that a team has been burnt and remove so results are still set
         player.VictoryCount = 0;
@@ -223,10 +228,9 @@ export class PlayersStats {
       if (!player.IsForfeited || oppositeIsFG) {
         const playerShouldBeForfeited = this.checkIfPlayerShouldBeForfeited(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
         if (playerShouldBeForfeited === false) {
-
           let forfeit = 0;
-          if (_.get(match, `Is${opposite}Forfeited`, false)) {
-            if (_.get(player, `VictoryCount`)) {
+          if (get(match, `Is${opposite}Forfeited`, false)) {
+            if (get(player, `VictoryCount`)) {
               forfeit = lghForfeitOpposite;
               const matchPlayedForfeit = this.calculateForfeit(player.UniqueIndex, match.MatchDetails.IndividualMatchResults, position);
               if (matchPlayedForfeit !== 0 && matchPlayedForfeit > forfeit) {
@@ -244,19 +248,18 @@ export class PlayersStats {
               //this.addNotice(`Match : ${match.MatchId} division ${match.DivisionId} journée ${match.WeekName} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} a un nombre de match forfeit supérieur au nombre de joueur noté forfeit. Les matchs comptés forfeits sont compts dans ce cas`);
             }
           }
-
           this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, forfeit);
         } else {
-          if (_.get(match, `Is${opposite}Withdrawn`, 'N') === 'N' &&
-            _.get(match, `Is${position}Withdrawn`, 'N') === 'N' &&
-            _.get(match, `Is${position}Forfeited`, false) === false
+          if (get(match, `Is${opposite}Withdrawn`, 'N') === 'N' &&
+            get(match, `Is${position}Withdrawn`, 'N') === 'N' &&
+            get(match, `Is${position}Forfeited`, false) === false
           ) {
             this.addError(`Match : ${match.MatchId} : ${player.FirstName} ${player.LastName} ${player.UniqueIndex} (${club}) est marqué WO pour tous ses matchs, mais n'est pas marqué WO dans la liste des joueurs de la feuille de matchs`);
 
             return;
           }
 
-          if (_.get(match, `Is${opposite}Withdrawn`, 'N') === '1') {
+          if (get(match, `Is${opposite}Withdrawn`, 'N') === '1') {
             this.upsertPlayerStat(player, divisionId, weekName, club, match.MatchId, 4);
           }
         }
@@ -265,21 +268,21 @@ export class PlayersStats {
   }
 
   private upsertPlayerStat(player: TeamMatchPlayerEntry, division: number, weekname: number, club: string, matchId: string, forfeit: number) {
-    if (!_.get(player, 'UniqueIndex')) {
+    if (!get(player, 'UniqueIndex')) {
       return;
     }
 
     const newVictoryHistory: MatchItem = {
       'divisionIndex': division,
-      'divisionCategory': Config.mapDivisionIdToCategory(_.toNumber(division)).name,
+      'divisionCategory': Config.mapDivisionIdToCategory(toNumber(division)).name,
       'weekName': weekname,
       'victoryCount': player.VictoryCount || 0,
       'forfeit': forfeit || 0,
-      'pointsWon': Config.mapVictoryToPoint(_.get(player, 'VictoryCount', 0) + forfeit),
+      'pointsWon': Config.mapVictoryToPoint(get(player, 'VictoryCount', 0) + forfeit),
       'matchId': matchId
     };
 
-    if (!_.has(this.playersStats, player.UniqueIndex)) {
+    if (!has(this.playersStats, player.UniqueIndex)) {
       //Not yet found in stats
       this.playersStats[player.UniqueIndex] = {
         'uniqueIndex': player.UniqueIndex,
@@ -291,7 +294,7 @@ export class PlayersStats {
       };
     }
 
-    const alreadyExistingResult: MatchItem = _.find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
+    const alreadyExistingResult: MatchItem = find(this.playersStats[player.UniqueIndex].victoryHistory, { 'weekName': weekname });
 
     if (!alreadyExistingResult) {
       this.playersStats[player.UniqueIndex].victoryHistory.push(newVictoryHistory);
@@ -307,9 +310,9 @@ export class PlayersStats {
     const label = `${position}PlayerUniqueIndex`;
     const oppositeToCheck = (position === 'Home') ? 'IsAwayForfeited' : 'IsHomeForfeited';
 
-    return _.chain(individualMatches)
-      .filter((individual: IndividualMatchResultEntry) => _.includes(_.get(individual, label, []), playerUniqueIndex))
-      .filter((playerMatch: IndividualMatchResultEntry[]) => _.get(playerMatch, oppositeToCheck, false))
+    return chain(individualMatches)
+      .filter((individual: IndividualMatchResultEntry) => includes(get(individual, label, []), playerUniqueIndex))
+      .filter((playerMatch: IndividualMatchResultEntry[]) => get(playerMatch, oppositeToCheck, false))
       .size()
       .value();
   }
@@ -318,9 +321,9 @@ export class PlayersStats {
     const label = `${position}PlayerUniqueIndex`;
     const forfeitLabel = `Is${position}Forfeited`;
 
-    return _.chain(individualMatchResults)
-      .filter((individual: IndividualMatchResultEntry) => _.includes(_.get(individual, label, []), uniqueIndex))
-      .filter((playerMatch: IndividualMatchResultEntry[]) => _.get(playerMatch, forfeitLabel, false))
+    return chain(individualMatchResults)
+      .filter((individual: IndividualMatchResultEntry) => includes(get(individual, label, []), uniqueIndex))
+      .filter((playerMatch: IndividualMatchResultEntry[]) => get(playerMatch, forfeitLabel, false))
       .size()
       .isEqual(4)
       .value();
