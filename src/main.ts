@@ -5,10 +5,10 @@ import { Config } from './config';
 import { FacebookHelper } from './firebase/facebook';
 import { FirebaseAdmin } from './firebase/firebase-admin';
 import { sendErrorMail, sendMail } from './helpers/mail';
+import {Week} from './helpers/week';
 import { TopCalculator } from './top-6';
 import { CategoryOutput, TaskOuput } from './top-6/ranking.model';
 import { WeekSummary } from './week-summary';
-
 // tslint:disable-next-line:no-require-imports no-var-requires
 const argv = require('yargs')
   .alias('w', 'weekname')
@@ -86,15 +86,17 @@ const processTop = async (weekName: number, playerInTop: number, saveInFirebase:
 
 
 const start = async () => {
+
   const currentDay: number = new Date().getDay();
-  const weekName = argv.weekname || 5;
 
   if ((currentDay < 2 && !argv.top) || argv.sunday) {
     const emails = argv.emails || Config.mailConfig.to;
     const playerInTop = argv.playerintop || 24;
+    const weekName = argv.weekname || Week.GetCurrentWeekname;
 
     await sundayJob(weekName, playerInTop, emails);
   } else {
+    const weekName = argv.weekname || (Week.GetCurrentWeekname - 1);
     const saveInFirebase = currentDay >= 4 || argv.saveinfirebase;
     const postOnFacebook = currentDay === 4 || argv.postonfacebook;
 

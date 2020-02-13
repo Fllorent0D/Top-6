@@ -193,6 +193,10 @@ export class PlayersStatsAggregator {
       return;
     }
 
+    if(!match.Score){
+      return;
+    }
+
     //Modified score 'Score Modifié" by the admin
     if (match.Score.includes('sm')) {
       const cleanedScore = match.Score.replace(' sm', '');

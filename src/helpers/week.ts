@@ -6,7 +6,8 @@ export interface IWeek {
 }
 
 export class Week {
-  private journees: IWeek = {
+  // tslint:disable-next-line:variable-name
+  private static Weeks: IWeek = {
     1: { fromDate: new Date(2019, 7, 1), toDate: new Date(2019, 8, 15) },
     2: { fromDate: new Date(2019, 8, 16), toDate: new Date(2019, 8, 22) },
     3: { fromDate: new Date(2019, 8, 23), toDate: new Date(2019, 8, 29) },
@@ -31,23 +32,25 @@ export class Week {
     22: { fromDate: new Date(2020, 2, 30), toDate: new Date(2020, 5, 5) }
   };
 
-  public getDate(numJournee: number): { fromDate: Date; toDate: Date } {
-    return this.journees[numJournee];
+  // tslint:disable-next-line:function-name
+  public static GetDate(numJournee: number): { fromDate: Date; toDate: Date } {
+    return Week.Weeks[numJournee];
   }
 
-  public getCurrentJournee(): number {
+  // tslint:disable-next-line:function-name
+  public static get GetCurrentWeekname(): number {
     let today = new Date();
     today = new Date(today.setHours(0, 0, 0, 0));
     let i;
-    for (i = 0; i < Object.keys(this.journees).length; i++) {
-      if (today >= this.journees[i + 1].fromDate && today <= this.journees[i + 1].toDate) {
+    for (i = 0; i < Object.keys(Week.Weeks).length; i++) {
+      if (today >= Week.Weeks[i + 1].fromDate && today <= Week.Weeks[i + 1].toDate) {
         break;
       }
     }
 
     if (i === 0) {
       return 1;
-    } else if (this.journees[i + 1]) {
+    } else if (Week.Weeks[i + 1]) {
       return i + 1;
     } else {
       return i;

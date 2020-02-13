@@ -173,8 +173,6 @@ export class TabTRequestor {
         throw new Error(await res.text());
       }
     });
-
-
   }
 
   private callOperation(operationToExecute: string, args: IRequest): Promise<any> {
