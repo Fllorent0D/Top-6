@@ -92,15 +92,18 @@ const start = async () => {
   if ((currentDay < 2 && !argv.top) || argv.sunday) {
     const emails = argv.emails || Config.mailConfig.to;
     const playerInTop = argv.playerintop || 24;
-    const weekName = argv.weekname || Week.GetCurrentWeekname;
+    const weekName = argv.weekname || (Week.GetCurrentWeekname - 1);
+    Config.logger.info(`Starting sunday: week [${weekName}], emails [${emails.join(',')}], playerInTop [${playerInTop}]`);
 
     await sundayJob(weekName, playerInTop, emails);
   } else {
     const weekName = argv.weekname || (Week.GetCurrentWeekname - 1);
     const saveInFirebase = currentDay >= 4 || argv.saveinfirebase;
     const postOnFacebook = currentDay === 4 || argv.postonfacebook;
-
     const playerInTop = argv.playerintop || 12;
+
+
+    Config.logger.info(`Starting with config: week [${weekName}], saveInFirebase [${saveInFirebase}], postOnFacebook [${postOnFacebook}], playerInTop [${playerInTop}]`);
 
     await processTop(weekName, playerInTop, saveInFirebase, postOnFacebook);
   }

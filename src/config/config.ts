@@ -44,52 +44,46 @@ export module Config {
     {
       'id': 0,
       'name': 'NAT/WB',
-      'divisions': [4141, 4142, 4143, 4144, 4145, 4146, 4235, 4236, 4237, 4238, 4239]
+      'divisions': [4687, 4688, 4689, 4690, 4691, 4692, 4868, 4870, 4872, 4874, 4876]
     },
     {
       'id': 1,
       'name': 'Provincial 1',
-      'divisions': [4482, 4483]
+      'divisions': [5046, 5048]
     },
     {
       'id': 2,
       'name': 'Provincial 2',
-      'divisions': [4485, 4486, 4487, 4488]
+      'divisions': [5050, 5052, 5054, 5056]
     },
     {
       'id': 3,
       'name': 'Provincial 3',
-      'divisions': [4489, 4490, 4491, 4492, 4493, 4494]
+      'divisions': [5058, 5060, 5062, 5064, 5066, 5068]
     },
     {
       'id': 4,
       'name': 'Provincial 4',
-      'divisions': [4495, 4521, 4496, 4497, 4489, 4498, 4499, 4500]
+      'divisions': [5070, 5072, 5074, 5076, 5078, 5080, 5082]
     },
     {
       'id': 5,
       'name': 'Provincial 5',
-      'divisions': [4501, 4502, 4503, 4504, 4505, 4506, 4507, 4508]
+      'divisions': [5084, 5086, 5088, 5090, 5092, 5094, 5096, 5098]
     },
     {
       'id': 6,
       'name': 'Provincial 6',
-      'divisions': [4509, 4510, 4511, 4512, 4513, 4514, 4515, 4516, 4517, 4518]
+      'divisions': [5100, 5102, 5104, 5106, 5108, 5110, 5112, 5114, 5116, 5118, 5120, 5122]
     }
   ];
 
   export const overrideMatchResults: MatchResult[] = [
-    {
-      matchId: '123',
-      homeVictoryCount: 3,
-      homeForfeit: 0,
-      awayVictoryCount: 3,
-      awayForfeit: 0
-    }
+
   ];
 
   export const overridePlayerVictoryHistory: { [index: string]: any[] } = {
-    '123': [
+/*    '123': [
       {
         'divisionIndex': '3968',
         'divisionCategory': 'Provincial 2',
@@ -100,7 +94,7 @@ export module Config {
         'matchId': 'LgH06/151'
       }
     ]
-
+*/
   };
 
   export const getAllClubs = (): string[] => {
@@ -172,7 +166,8 @@ export module Config {
     to: [
       'f.cardoen@me.com',
       'jacpirard@hotmail.com',
-      'thomasbastin5@gmail.com'
+      'thomasbastin5@gmail.com',
+      'raphael.castillejos@hotmail.com'
     ],
     subject: 'Top 6 & Techniques Verviers & Huy-Waremme',
     message: `Le nouveau classement TOP 6 de Verviers & Huy-Waremme vient d\'être calculé automatiquement par le serveur de BePing.<br/>

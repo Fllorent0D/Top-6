@@ -140,7 +140,7 @@ export class TopCalculator {
     //getMatchRequest.WeekName = week.toString();
     getMatchRequest.Club = club;
     getMatchRequest.WithDetails = true;
-    getMatchRequest.Season = 20;
+    getMatchRequest.Season = 21;
 
     return this.tabt.getMatches(getMatchRequest);
   }
