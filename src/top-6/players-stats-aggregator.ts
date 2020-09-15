@@ -316,7 +316,7 @@ export class PlayersStatsAggregator {
 
     return chain(individualMatches)
       .filter((individual: IndividualMatchResultEntry) => includes(get(individual, label, []), playerUniqueIndex))
-      .filter((playerMatch: IndividualMatchResultEntry[]) => get(playerMatch, oppositeToCheck, false))
+      .filter((playerMatch: IndividualMatchResultEntry) => get(playerMatch, oppositeToCheck, false))
       .size()
       .value() as number;
   }
@@ -327,7 +327,7 @@ export class PlayersStatsAggregator {
 
     return chain(individualMatchResults)
       .filter((individual: IndividualMatchResultEntry) => includes(get(individual, label, []), uniqueIndex))
-      .filter((playerMatch: IndividualMatchResultEntry[]) => get(playerMatch, forfeitLabel, false))
+      .filter((playerMatch: IndividualMatchResultEntry) => get(playerMatch, forfeitLabel, false))
       .size()
       .isEqual(4)
       .value() as boolean;
