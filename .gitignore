@@ -34,3 +34,4 @@ debug/
 \.prettierrc
 
 \.travis\.yml
+/dist/

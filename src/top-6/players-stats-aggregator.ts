@@ -318,7 +318,7 @@ export class PlayersStatsAggregator {
       .filter((individual: IndividualMatchResultEntry) => includes(get(individual, label, []), playerUniqueIndex))
       .filter((playerMatch: IndividualMatchResultEntry[]) => get(playerMatch, oppositeToCheck, false))
       .size()
-      .value();
+      .value() as number;
   }
 
   private checkIfPlayerShouldBeForfeited(uniqueIndex: number, individualMatchResults: IndividualMatchResultEntry[], position: string): boolean {
@@ -330,7 +330,7 @@ export class PlayersStatsAggregator {
       .filter((playerMatch: IndividualMatchResultEntry[]) => get(playerMatch, forfeitLabel, false))
       .size()
       .isEqual(4)
-      .value();
+      .value() as boolean;
   }
 
   private addError(error: string): void {
