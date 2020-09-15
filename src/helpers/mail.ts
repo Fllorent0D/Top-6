@@ -16,14 +16,15 @@ const sendMail =
     const attachments = [];
     for (const summary of summaryText) {
       attachments.push({
-        content: Buffer.from(summary.text, 'utf8'),
+        content: Buffer.from(summary.text, 'utf8').toString('base64'),
         filename: `techniques-${date}-${summary.name}.txt`,
-        type: 'plain/text'
+        type: 'plain/text',
+        disposition: 'attachment'
       });
     }
     for (const top of topText) {
       attachments.push({
-        content: Buffer.from(top.text, 'utf8'),
+        content: Buffer.from(top.text, 'utf8').toString('base64'),
         filename: `tops-${date}-${top.name}.txt`,
         type: 'plain/text'
       });
@@ -43,7 +44,7 @@ const sendMail =
         message = `${message} ${notice}<br/>`;
       }
     }
-
+/*
     const transporter = NodeMailer.createTransport({
       service: 'gmail',
       auth: {
@@ -61,11 +62,47 @@ const sendMail =
     };
 
     return transporter.sendMail(mailOptions);
+*/
+
+
+    const data = {
+      'content': [
+        {
+          'type': 'text/html',
+          'value': message
+        }
+      ],
+      'from': {
+        'email': 'florent.cardoen@floca.be',
+        'name': 'Florent Cardoen'
+      },
+      'personalizations': [
+        {
+          'subject': Config.mailConfig.subject,
+          'to': to.map((email: string) => ({email}))
+        }
+      ],
+      'reply_to': {
+        'email': 'f.cardoen@me.com',
+        'name': 'Florent Cardoen'
+      },
+      'subject': Config.mailConfig.subject,
+      attachments: attachments
+    };
+    const request = {
+      body: data,
+      method: 'POST',
+      url: '/v3/mail/send'
+    };
+
+    return client.request(request);
+
+
   };
 
 const sendErrorMail = (error: Error): Promise<any> => {
 
-
+/*
   const transporter = NodeMailer.createTransport({
     service: 'gmail',
     auth: {
@@ -82,7 +119,7 @@ const sendErrorMail = (error: Error): Promise<any> => {
   };
 
   return transporter.sendMail(mailOptions);
-
+*/
   const data = {
     'content': [
       {
@@ -91,7 +128,7 @@ const sendErrorMail = (error: Error): Promise<any> => {
       }
     ],
     'from': {
-      'email': 'florent.cardoen@beping.be',
+      'email': 'florent.cardoen@floca.be',
       'name': 'Florent Cardoen'
     },
     'subject': 'Error when calculting tops'
