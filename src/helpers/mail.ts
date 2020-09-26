@@ -3,7 +3,7 @@ import * as dateFormat from 'dateformat';
 import * as NodeMailer from 'nodemailer';
 import { Config } from '../config';
 
-client.setApiKey('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');
+client.setApiKey('xxx');
 
 const sendMail =
   (summaryText: { name: string; text: string }[],
@@ -16,7 +16,7 @@ const sendMail =
     const attachments = [];
     for (const summary of summaryText) {
       attachments.push({
-        content: Buffer.from(summary.text, 'utf8').toString('base64'),
+        content: Buffer.from(summary.text, 'utf8'),
         filename: `techniques-${date}-${summary.name}.txt`,
         type: 'plain/text',
         disposition: 'attachment'
@@ -24,7 +24,7 @@ const sendMail =
     }
     for (const top of topText) {
       attachments.push({
-        content: Buffer.from(top.text, 'utf8').toString('base64'),
+        content: Buffer.from(top.text, 'utf8'),
         filename: `tops-${date}-${top.name}.txt`,
         type: 'plain/text'
       });
@@ -44,7 +44,7 @@ const sendMail =
         message = `${message} ${notice}<br/>`;
       }
     }
-/*
+
     const transporter = NodeMailer.createTransport({
       service: 'gmail',
       auth: {
@@ -62,8 +62,8 @@ const sendMail =
     };
 
     return transporter.sendMail(mailOptions);
-*/
 
+/*
 
     const data = {
       'content': [
@@ -97,7 +97,7 @@ const sendMail =
 
     return client.request(request);
 
-
+*/
   };
 
 const sendErrorMail = (error: Error): Promise<any> => {
