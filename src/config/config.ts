@@ -37,8 +37,8 @@ export module Config {
       clubs: ['L030', 'L043', 'L098', 'L111', 'L119', 'L143',
         'L152', 'L165', 'L170', 'L185', 'L199', 'L217', 'L218',
         'L263', 'L312', 'L316', 'L338', 'L351', 'L355', 'L370',
-        'L377', 'L383', 'L384', 'L390', 'L391', 'L396', 'L401',],
-    },
+        'L377', 'L383', 'L384', 'L390', 'L391', 'L396', 'L401']
+    }
   ];
   export const categories: IConfigCategoryRanking[] = [
     {
@@ -78,23 +78,21 @@ export module Config {
     }
   ];
 
-  export const overrideMatchResults: MatchResult[] = [
-
-  ];
+  export const overrideMatchResults: MatchResult[] = [];
 
   export const overridePlayerVictoryHistory: { [index: string]: any[] } = {
-/*    '123': [
-      {
-        'divisionIndex': '3968',
-        'divisionCategory': 'Provincial 2',
-        'weekName': '06',
-        'victoryCount': 4,
-        'forfeit': 0,
-        'pointsWon': 5,
-        'matchId': 'LgH06/151'
-      }
-    ]
-*/
+    /*    '123': [
+          {
+            'divisionIndex': '3968',
+            'divisionCategory': 'Provincial 2',
+            'weekName': '06',
+            'victoryCount': 4,
+            'forfeit': 0,
+            'pointsWon': 5,
+            'matchId': 'LgH06/151'
+          }
+        ]
+    */
   };
 
   export const getAllClubs = (): string[] => {
@@ -145,12 +143,12 @@ export module Config {
       level: 'info',
       handleExceptions: true,
       json: false,
-      colorize: true
-    },
-    format: winston.format.combine(
-      winston.format.splat(),
-      winston.format.simple()
-    )
+      colorize: true,
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple(),
+      )
+    }
   };
   export const logger = winston.createLogger({
     transports: [
@@ -169,7 +167,7 @@ export module Config {
       'thomasbastin5@gmail.com',
       'raphael.castillejos@hotmail.com'
     ],
-    subject: 'Top 6 & Techniques Verviers & Huy-Waremme',
+    subject: 'Top 6 / Techniques (Verviers, Huy-Waremme, Liège)',
     message: `Le nouveau classement TOP 6 de Verviers & Huy-Waremme vient d\'être calculé automatiquement par le serveur de BePing.<br/>
                       Vous trouverez en pièces jointes de ce mail le classement du TOP6 ainsi que les techniques des rencontres dans la région de Verviers & Huy-Waremme de cette semaine. <br/>Si des erreurs étaient à constater, merci de répondre à ce mail.<br/><br/>`
 

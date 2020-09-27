@@ -1,9 +1,8 @@
-import * as client from '@sendgrid/client';
 import * as dateFormat from 'dateformat';
-import * as NodeMailer from 'nodemailer';
+import * as mailjet from 'node-mailjet';
 import { Config } from '../config';
 
-client.setApiKey('xxx');
+const client = mailjet.connect('xxx', 'xxx');
 
 const sendMail =
   (summaryText: { name: string; text: string }[],
@@ -16,17 +15,16 @@ const sendMail =
     const attachments = [];
     for (const summary of summaryText) {
       attachments.push({
-        content: Buffer.from(summary.text, 'utf8'),
-        filename: `techniques-${date}-${summary.name}.txt`,
-        type: 'plain/text',
-        disposition: 'attachment'
+        'Base64Content': Buffer.from(summary.text, 'utf8').toString('base64'),
+        'Filename': `techniques-${date}-${summary.name}.txt`,
+        'ContentType': 'plain/text'
       });
     }
     for (const top of topText) {
       attachments.push({
-        content: Buffer.from(top.text, 'utf8'),
-        filename: `tops-${date}-${top.name}.txt`,
-        type: 'plain/text'
+        'Base64Content': Buffer.from(top.text, 'utf8').toString('base64'),
+        'Filename': `tops-${date}-${top.name}.txt`,
+        'ContentType': 'plain/text'
       });
     }
     let message = Config.mailConfig.message;
@@ -45,101 +43,45 @@ const sendMail =
       }
     }
 
-    const transporter = NodeMailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: 'flocardoen@gmail.com',
-        pass: 'Fc087229090'
-      }
-    });
-
-    const mailOptions = {
-      from: 'flocardoen@gmail.com', // sender address
-      to, // list of receivers
-      subject: Config.mailConfig.subject, // Subject line
-      html: message,// plain text body
-      attachments
-    };
-
-    return transporter.sendMail(mailOptions);
-
-/*
-
     const data = {
-      'content': [
+      'Messages': [
         {
-          'type': 'text/html',
-          'value': message
+          'From': {
+            'Email': 'beping@floca.be',
+            'Name': 'BePing server'
+          },
+          'To': to.map((email: string) => ({ 'Email': email })),
+          'ReplyTo':[{'Email': 'f.cardoen@me.com'}],
+          'Subject': Config.mailConfig.subject,
+          'HTMLPart': message,
+          'Attachments': attachments
         }
-      ],
-      'from': {
-        'email': 'florent.cardoen@floca.be',
-        'name': 'Florent Cardoen'
-      },
-      'personalizations': [
-        {
-          'subject': Config.mailConfig.subject,
-          'to': to.map((email: string) => ({email}))
-        }
-      ],
-      'reply_to': {
-        'email': 'f.cardoen@me.com',
-        'name': 'Florent Cardoen'
-      },
-      'subject': Config.mailConfig.subject,
-      attachments: attachments
-    };
-    const request = {
-      body: data,
-      method: 'POST',
-      url: '/v3/mail/send'
+      ]
     };
 
-    return client.request(request);
-
-*/
+    return client
+      .post('send', { 'version': 'v3.1' })
+      .request(data);
   };
 
 const sendErrorMail = (error: Error): Promise<any> => {
-
-/*
-  const transporter = NodeMailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'flocardoen@gmail.com',
-      pass: 'Fc087229090'
-    }
-  });
-
-  const mailOptions = {
-    from: 'flocardoen@gmail.com', // sender address
-    to: 'f.cardoen@me.com', // list of receivers
-    subject: Config.mailConfig.subject, // Subject line
-    html: `Name: ${error.name}</br>Message: ${error.message}<br/>Stacktrace: ${error.stack}`,
-  };
-
-  return transporter.sendMail(mailOptions);
-*/
   const data = {
-    'content': [
+    'Messages': [
       {
-        'type': 'text/html',
-        'value': `Name: ${error.name}</br>Message: ${error.message}<br/>Stacktrace: ${error.stack}`
+        'From': {
+          'Email': 'beping@floca.be',
+          'Name': 'BePing - L\'appli de Ping belge'
+        },
+        'To': [{ 'Email': 'f.cardoen@me.com' }],
+        'Subject': Config.mailConfig.subject,
+        'HTMLPart': `Name: ${error.name}</br>Message: ${error.message}<br/>Stacktrace: ${error.stack}`,
       }
-    ],
-    'from': {
-      'email': 'florent.cardoen@floca.be',
-      'name': 'Florent Cardoen'
-    },
-    'subject': 'Error when calculting tops'
-  };
-  const request = {
-    body: data,
-    method: 'POST',
-    url: '/v3/mail/send'
+    ]
   };
 
-  return client.request(request);
+  return client
+    .post('send', { 'version': 'v3.1' })
+    .request(data);
 };
 
 export { sendMail, sendErrorMail };

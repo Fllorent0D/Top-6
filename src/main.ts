@@ -111,5 +111,5 @@ const start = async () => {
 
 start()
   .then(() => Config.logger.info('Program successfully exited'))
-  .catch(() => Config.logger.error('Something seems to be wrong'));
+  .catch((err: any) => Config.logger.error('Something seems to be wrong', err));
 
