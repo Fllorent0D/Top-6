@@ -51,7 +51,7 @@ const sendMail =
             'Name': 'BePing server'
           },
           'To': to.map((email: string) => ({ 'Email': email })),
-          'ReplyTo':[{'Email': 'f.cardoen@me.com'}],
+          'ReplyTo':{'Email': 'f.cardoen@me.com'},
           'Subject': Config.mailConfig.subject,
           'HTMLPart': message,
           'Attachments': attachments

@@ -97,7 +97,7 @@ const start = async () => {
 
     await sundayJob(weekName, playerInTop, emails);
   } else {
-    const weekName = argv.weekname || (Week.GetCurrentWeekname - 1);
+    const weekName = argv.weekname || Week.GetCurrentWeekname;
     const saveInFirebase = currentDay >= 4 || argv.saveinfirebase;
     const postOnFacebook = currentDay === 4 || argv.postonfacebook;
     const playerInTop = argv.playerintop || 12;
