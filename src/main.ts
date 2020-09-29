@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import * as admin from 'firebase-admin';
-import MessagingTopicResponse = admin.messaging.MessagingTopicResponse;
 import { Config } from './config';
 import { FacebookHelper } from './firebase/facebook';
 import { FirebaseAdmin } from './firebase/firebase-admin';
@@ -70,9 +68,13 @@ const processTop = async (weekName: number, playerInTop: number, saveInFirebase:
     });
 
     if (saveInFirebase) {
-      firebase.saveTop(top.rankings, top.playersStats);
-      const notification: MessagingTopicResponse = await FirebaseAdmin.sendNotification();
-      Config.logger.info(`Notification sent ${notification}`);
+      const test = await firebase.saveTop(top.rankings, top.playersStats);
+      Config.logger.info('Top saved in firebase: ', test);
+
+      await firebase.sendNotification();
+      Config.logger.info(`Notification sent`);
+
+      await firebase.release()
     }
 
     if (postOnFacebook) {
